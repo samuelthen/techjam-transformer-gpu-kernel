@@ -1,0 +1,42 @@
+=== shape 1: batch=64 d_model=128 heads=4 seq_len=128 layers=4 ffn_dim=128 ===
+  -> accuracy=PASS  speedup=4.301
+=== shape 2: batch=1 d_model=128 heads=4 seq_len=128 layers=4 ffn_dim=128 ===
+  -> accuracy=PASS  speedup=9.17
+=== shape 3: batch=4 d_model=128 heads=4 seq_len=128 layers=4 ffn_dim=128 ===
+  -> accuracy=PASS  speedup=8.454
+=== shape 4: batch=16 d_model=128 heads=4 seq_len=128 layers=4 ffn_dim=128 ===
+  -> accuracy=PASS  speedup=6.401
+=== shape 5: batch=128 d_model=128 heads=4 seq_len=128 layers=4 ffn_dim=128 ===
+  -> accuracy=PASS  speedup=4.036
+=== shape 6: batch=10000 d_model=128 heads=4 seq_len=128 layers=4 ffn_dim=128 ===
+  -> accuracy=PASS  speedup=3.88
+=== shape 7: batch=64 d_model=32 heads=4 seq_len=128 layers=4 ffn_dim=32 ===
+  -> accuracy=PASS  speedup=7.02
+=== shape 8: batch=64 d_model=1024 heads=4 seq_len=128 layers=4 ffn_dim=1024 ===
+  -> accuracy=PASS  speedup=1.607
+=== shape 9: batch=64 d_model=128 heads=1 seq_len=128 layers=4 ffn_dim=128 ===
+  -> accuracy=PASS  speedup=2.655
+=== shape 10: batch=64 d_model=128 heads=2 seq_len=128 layers=4 ffn_dim=128 ===
+  -> accuracy=PASS  speedup=3.083
+=== shape 11: batch=64 d_model=128 heads=16 seq_len=128 layers=4 ffn_dim=128 ===
+  -> accuracy=PASS  speedup=6.983
+=== shape 12: batch=64 d_model=128 heads=4 seq_len=32 layers=4 ffn_dim=128 ===
+  -> accuracy=PASS  speedup=5.536
+=== shape 13: batch=64 d_model=128 heads=4 seq_len=1024 layers=4 ffn_dim=128 ===
+  -> accuracy=PASS  speedup=15.118
+
+=== Summary (literal official torch_transformer_benchmark.py, --no-allow-tf32) ===
+Shape  Accuracy   Speedup
+    1      PASS    4.301x
+    2      PASS    9.170x
+    3      PASS    8.454x
+    4      PASS    6.401x
+    5      PASS    4.036x
+    6      PASS    3.880x
+    7      PASS    7.020x
+    8      PASS    1.607x
+    9      PASS    2.655x
+   10      PASS    3.083x
+   11      PASS    6.983x
+   12      PASS    5.536x
+   13      PASS   15.118x

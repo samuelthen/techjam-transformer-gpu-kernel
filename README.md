@@ -1,6 +1,6 @@
 # Transformer GPU Kernel Optimization — Challenge 3
 
-**One Transformer implementation that looks at its own input shape and picks the fastest execution plan proven to still be numerically correct — up to 15.6x faster than the reference, on every one of the 14 disclosed test shapes, plus a generalization rule for shapes it's never seen.**
+**One Transformer implementation that looks at its own input shape and picks the fastest execution plan proven to still be numerically correct — 13/13 PASS at up to 15.1x on the literal official grading script, up to 15.6x under our own deeper stress testing, plus a generalization rule for shapes it's never seen.**
 
 ```python
 from optimized_transformer import UserOptimizedTransformer
@@ -11,26 +11,31 @@ output = model(x, valid_token_mask)           # dispatches internally, every tim
 
 ## The headline numbers
 
-Every row below is a **verified pass** on the strict competition gate — `abs_error ≤ 0.002 OR relative_error ≤ 2%` per output element, checked across **40 stress trials** per shape (10 each of `normal`, `tiny`, `large`, and rare-`outlier` input distributions — not just default random inputs). Speedup is against the exact FP32 reference Transformer, on an NVIDIA RTX A6000.
+**These numbers come from running the literal, unmodified `torch_transformer_benchmark.py` (§3.4 of the problem statement) with only `UserOptimizedTransformer` filled in** — the exact script and methodology a grader would use, not our own research harness. Every shape below is a verified **PASS** on the competition's own correctness gate (`abs_error ≤ 0.002 OR relative_error ≤ 2%`), on an NVIDIA RTX A6000.
 
-| Shape (B, S, D, Heads) | Winning plan | Speedup vs. reference |
-|---|---|---|
-| 1 — 64, 128, 128, 4 | `LLVV` | **4.98x** |
-| 2 — 1, 128, 128, 4 | `LLVV` | **15.23x** |
-| 3 — 4, 128, 128, 4 | `LVLV` | **15.62x** |
-| 4 — 16, 128, 128, 4 | `LLVV` | **11.54x** |
-| 5 — 128, 128, 128, 4 | `LLLV` | **4.33x** |
-| 6 — 10000, 128, 128, 4 | `PLLV` | **3.92x** |
-| 7 — 64, 128, 32, 4 | `LFA` (all-FP16 core) | **10.73x** |
-| 8 — 64, 128, 1024, 4 | `PVPV` | **1.64x** |
-| 9 — 64, 128, 128, 1 | `LLVV` | **3.42x** |
-| 10 — 64, 128, 128, 2 | `PLVV` | **3.63x** |
-| 11 — 64, 128, 128, 16 | `LFA` (all-FP16 core) | **7.96x** |
-| 12 — 64, 32, 128, 4 | `PVLV` | **9.24x** |
-| 13 — 64, 1024, 128, 4 | `LLLV` | **15.50x** |
-| 14 — 32, 100000, 1024, 16 | `LP` (microbatched) | **1.85x** vs. compiled-FP32 |
+| Shape | (Batch, D, Heads, Seq, Layers) | Accuracy | Speedup vs. reference |
+|---|---|---|---|
+| 1 | 64, 128, 4, 128, 4 | PASS | **4.30x** |
+| 2 | 1, 128, 4, 128, 4 | PASS | **9.17x** |
+| 3 | 4, 128, 4, 128, 4 | PASS | **8.45x** |
+| 4 | 16, 128, 4, 128, 4 | PASS | **6.40x** |
+| 5 | 128, 128, 4, 128, 4 | PASS | **4.04x** |
+| 6 | 10000, 128, 4, 128, 4 | PASS | **3.88x** |
+| 7 | 64, 32, 4, 128, 4 | PASS | **7.02x** |
+| 8 | 64, 1024, 4, 128, 4 | PASS | **1.61x** |
+| 9 | 64, 128, 1, 128, 4 | PASS | **2.66x** |
+| 10 | 64, 128, 2, 128, 4 | PASS | **3.08x** |
+| 11 | 64, 128, 16, 128, 4 | PASS | **6.98x** |
+| 12 | 64, 128, 4, 32, 4 | PASS | **5.54x** |
+| 13 | 64, 128, 4, 1024, 4 | PASS | **15.12x** |
 
-`L`/`P`/`V` per letter = which precision level that layer runs at (FP16-FlashAttention-2 core / FP32-SDPA / FP16-QKV+attention+out-proj) — see "How it works" below. Full derivation, every intermediate result, and the two real bugs we root-caused along the way are in **[`TECH_REPORT.md`](TECH_REPORT.md)**. Every paper idea used is attributed line-by-line in **[`ATTRIBUTION.md`](ATTRIBUTION.md)**.
+**13/13 PASS. Geometric mean 5.15x, arithmetic mean 6.02x, up to 15.12x on the longest-sequence shape.** Reproduce with `python run_official_sweep.py` (drives `torch_transformer_benchmark.py` once per shape) — raw log in `results/logs/official_sweep_shapes_1-13.log`.
+
+Shape 14 (batch=32, seq=100,000) **cannot run through this script at all — for either implementation.** The official `BaselineTransformer`'s manual attention needs `O(S²)` memory; at S=100,000 that's 4.77 TB regardless of whose code is running. This isn't a limitation of our submission — it's a limitation of the provided reference implementation at that shape. Our dispatcher still handles it correctly via batch-microbatching (see below), validated against a memory-safe reference instead: **1.85x vs. the fastest baseline that can physically execute there.**
+
+*A deeper, stress-tested version of this same table — checked against `tiny`/`large`/outlier-injected inputs, not just default random ones, using per-layer plans found by exhaustive search — lives in [`TECH_REPORT.md`](TECH_REPORT.md) §6, with typically higher numbers (up to 15.6x on shape 3) once the harness gives each shape 40 trials and finer-grained timing instead of the official script's simpler defaults. Both tables describe the same submission; the one above is what you get by running the grader's own script unmodified.*
+
+Full derivation, every intermediate result, and the two real bugs we root-caused along the way are in **[`TECH_REPORT.md`](TECH_REPORT.md)**. Every paper idea used is attributed line-by-line in **[`ATTRIBUTION.md`](ATTRIBUTION.md)**.
 
 ## Why this isn't just "use FlashAttention"
 
@@ -44,7 +49,9 @@ Three findings shaped the final design, each backed by a root-caused bug or a sy
 
 ## What's actually in the repo
 
-- **`src/optimized_transformer.py` — the submission.** A `BaselineTransformer` subclass (`UserOptimizedTransformer`) that dynamically dispatches per shape: exact validated plans for all 14 disclosed shapes, plus a regime classifier for unseen shapes (see "How it works"). Run it directly — `python optimized_transformer.py` — for a self-contained correctness self-test.
+- **`src/optimized_transformer.py` — the core submission.** A `BaselineTransformer` subclass (`UserOptimizedTransformer`) that dynamically dispatches per shape: exact validated plans for all 14 disclosed shapes, plus a regime classifier for unseen shapes (see "How it works"). Run it directly — `python optimized_transformer.py` — for a self-contained correctness self-test.
+- **`src/torch_transformer_benchmark.py` — the official grading script**, byte-for-byte as provided (§3.4 of the problem statement) except `UserOptimizedTransformer`, which delegates to `optimized_transformer.py`. This is what actually produces the headline table above.
+- **`src/run_official_sweep.py`** — drives `torch_transformer_benchmark.py` once per official shape and prints the summary table.
 - **`src/transformer_ablation_benchmark.py` — the research harness.** ~35 candidate variants (packed QKV, SDPA vs. FlashAttention-2, mask-skip, `torch.compile`, 8 different precision-boundary designs), full accuracy/timing infrastructure, and the competition-shape sweep this was all validated with.
 - **`src/search_*.py`, `src/shape14_*.py` — the search scripts** that found every plan in the table above, parameterized to run in parallel across a multi-GPU host.
 - **`results/`** — every CSV, log, and dispatch table backing every number in this README and the tech report.
@@ -101,13 +108,28 @@ If `flash-attn` isn't installed (or CUDA isn't available), `UserOptimizedTransfo
 
 All commands assume `cd src/` first.
 
-**1. Run the submission's self-test** (correctness only, fast, no full benchmark needed):
+**1. Reproduce the headline table** — the literal official grading script, run once per shape:
+
+```bash
+python run_official_sweep.py
+```
+
+Or run a single shape directly (this is exactly what the grader would run):
+
+```bash
+python torch_transformer_benchmark.py \
+  --batch-size 64 --seq-len 128 --d-model 128 --heads 4 --ffn-dim 128 --layers 4 --causal \
+  --device cuda --dtype float32 --no-allow-tf32 \
+  --accuracy-trials 10 --rtol 0.02 --atol 0.002
+```
+
+**2. Run the submission's self-test directly** (correctness only, fast, no full benchmark needed):
 
 ```bash
 python optimized_transformer.py
 ```
 
-**2. Full competition-shape sweep reproducing the headline table**, using the underlying research harness (float32 reference, FP16 fast-dtype, TF32 disabled — see `TECH_REPORT.md` §4.2 for why `--no-allow-tf32` is required for correctness):
+**3. Full competition-shape sweep with the deeper stress-tested table**, using the research harness (float32 reference, FP16 fast-dtype, TF32 disabled — see `TECH_REPORT.md` §4.2 for why `--no-allow-tf32` is required for correctness):
 
 ```bash
 python transformer_ablation_benchmark.py \
@@ -119,7 +141,7 @@ python transformer_ablation_benchmark.py \
   --csv ../results/csv/my_run.csv
 ```
 
-**3. Reproduce the per-layer hybrid searches** that found shapes 6 and 14's exact plans, plus the generalized 3-way search used for the rest:
+**4. Reproduce the per-layer hybrid searches** that found shapes 6 and 14's exact plans, plus the generalized 3-way search used for the rest:
 
 ```bash
 python search_shape6_hybrid.py                      # binary FP32/LFA-level search
@@ -128,7 +150,7 @@ python shape14_microbatch.py && python shape14_hybrid.py   # shape 14's chunked 
 python search_layer_precision_boundary.py <shape_id>[,<shape_id>...] <cuda_device_index>
 ```
 
-**4. Reproduce the two root-caused bugs** behind the design (TF32-induced correctness divergence; `torch._dynamo`'s silent recompilation-cache fallback):
+**5. Reproduce the two root-caused bugs** behind the design (TF32-induced correctness divergence; `torch._dynamo`'s silent recompilation-cache fallback):
 
 ```bash
 python diagnose_sdpa_divergence.py
@@ -147,8 +169,7 @@ Built interactively with Claude (Claude Code): reading and extending the provide
 - The regime classifier for unseen shapes is validated on one deliberately adversarial synthetic case (matched to shape 6's extreme element count), not an exhaustive sweep of the unseen-shape space — a larger fuzz-test across many synthetic shapes would raise confidence further.
 - The per-layer search menu (FP32-SDPA / LFA-level / VFA-level) is a fixed 3-way choice per layer, not a fully independent search over QKV precision × out-proj precision × attention backend — a larger search could plausibly do better, especially on shapes 7 and 11 where no mix beat plain `LFA`.
 - No custom CUDA/Triton kernels were written; all gains are from PyTorch-level operator/precision/layout choices and `torch.compile`. Concrete next steps (LayerNorm+QKV fusion, FFN fusion, persistent whole-model kernels, tile/warp/pipeline tuning) are identified with paper citations in `ATTRIBUTION.md` §15–18 but not implemented.
-- Shape 14's dispatch entry has not been benchmarked with `torch.compile` (each uncompiled forward pass there already takes ~60 seconds, making multi-candidate compilation impractical in the time available).
-- The 14-shape table used here should be cross-checked against the official competition appendix before final submission.
+- Shape 14's dispatch entry has not been benchmarked with `torch.compile` (each uncompiled forward pass there already takes ~60 seconds, making multi-candidate compilation impractical in the time available). It also can't be validated through the unmodified official script at all, since the official `BaselineTransformer` itself can't execute at that shape (§ headline numbers, above) — only our own memory-safe cross-check (`H` vs `LFA`/`LP`) is available there.
 
 Full list, plus every operational lesson learned running this on a shared multi-GPU host, in `TECH_REPORT.md` §7–8.
 

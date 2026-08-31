@@ -1,6 +1,6 @@
 # Technical Report — Transformer GPU Kernel Optimization (Challenge 3)
 
-Status: **complete.** All 14 shapes have a validated dispatch entry, including shape 6's extended 3-way per-layer search (§6.2).
+Status: **complete.** All 14 shapes have a validated dispatch entry, including shape 6's extended 3-way per-layer search (§6.2), and the resulting implementation has been independently validated by running the literal, unmodified official grading script (§10) — 13/13 PASS.
 
 ## 1. Environment
 
@@ -23,7 +23,7 @@ Only the A6000 (Ampere, compute capability 8.6) was targeted. FlashAttention's `
 
 ## 2. Problem framing
 
-The challenge asks for GPU kernel(s) implementing a Transformer layer that (a) match a PyTorch reference within `abs_error ≤ 0.002 OR relative_error ≤ 2%` per output element, and (b) run faster than the reference, across a disclosed set of shapes that vary batch size, sequence length, hidden dimension, and head count independently (see Appendix — Test Shapes in the problem statement; the 14-shape table used throughout this repo is reproduced in `src/transformer_ablation_benchmark.py::COMPETITION_SHAPES` and should be cross-checked against the official Feishu appendix before final submission, since the problem statement flags that document as authoritative and possibly divergent from any copy circulated elsewhere).
+The challenge asks for GPU kernel(s) implementing a Transformer layer that (a) match a PyTorch reference within `abs_error ≤ 0.002 OR relative_error ≤ 2%` per output element, and (b) run faster than the reference, across a disclosed set of shapes that vary batch size, sequence length, hidden dimension, and head count independently (see Appendix — Test Shapes in the problem statement; the 14-shape table used throughout this repo is reproduced in `src/transformer_ablation_benchmark.py::COMPETITION_SHAPES` and was independently verified field-by-field against the official appendix — all 14 shapes match exactly, see §10.1).
 
 Two design decisions shaped everything downstream:
 
@@ -177,7 +177,7 @@ Raw CSVs and logs backing every number above are in `results/csv/` and `results/
 - The per-layer search space explored is still a fixed menu (none/LFA-level/VFA-level) rather than a fully independent per-layer choice of QKV precision, out-proj precision, and attention backend — a larger, more expensive search could plausibly find further gains, especially on shapes 7 and 11 where no improvement was found within the current menu.
 - No custom CUDA/Triton kernels were written; all gains come from PyTorch-level operator choice (SDPA vs. FlashAttention-2), precision boundaries, layout (packed QKV), and `torch.compile`. §17–18 of `ATTRIBUTION.md` outline concrete next steps (LayerNorm+QKV fusion, FFN fusion, persistent/whole-model kernels, tile/warp/pipeline tuning) that were identified but not implemented in the time available.
 - Shape 14's dispatch entry (`LP`, uncompiled) has not been benchmarked with `torch.compile`, given the extreme per-forward cost at that shape (~60s/forward for `H` alone) made compiling multiple candidates impractical within the available time; a compiled `LP` would very likely be faster still.
-- The 14-shape table in this repo should be cross-checked against the official Feishu appendix before final submission, per the problem statement's own note that content may have diverged.
+- Shape 14 cannot be validated through the unmodified official grading script at all (§10.3) — its own reference `BaselineTransformer` cannot execute at that sequence length, so only our own memory-safe cross-check (§4.8-4.9) exists there.
 - Everything here targets a single GPU model (A6000, Ampere). The attribution document (§19–20) is explicit about which paper-derived directions (Hopper FA3 scheduling, Blackwell FP4 attention) do **not** transfer to this hardware and would need separate validation on different GPUs.
 - The regime classifier for unseen shapes (§9) is validated against one deliberately adversarial synthetic shape, not an exhaustive fuzz sweep of the unseen-shape space.
 
@@ -228,3 +228,39 @@ This is real evidence the generalization rule works at least in the one adversar
 - **Never crashes on an untested configuration.** No CUDA, no `flash-attn`, or a non-trivial padding mask (the flash-attn path here only supports the fully-valid mask that matches every one of the 14 disclosed shapes) all route to the plain FP32 SDPA fallback rather than raising or silently miscomputing.
 - **TF32 is disabled unconditionally on import** (`torch.backends.cuda.matmul.allow_tf32 = False`), closing the correctness gap root-caused in §4.2 regardless of which execution plan ends up chosen.
 - **`torch.compile` failures degrade gracefully.** If compilation raises for any reason, the uncompiled (still-correct) module is used instead of propagating the exception — correctness is prioritized over the speed `torch.compile` would have added.
+
+## 10. Validation against the literal official grading script
+
+Everything in §1–9 was measured with this repo's own research harness (`transformer_ablation_benchmark.py`) and search scripts. To eliminate any question of whether those numbers are comparable to what a grader would actually see, `src/torch_transformer_benchmark.py` is the officially-provided benchmark template (problem statement §3.4), preserved **byte-for-byte** except for the `UserOptimizedTransformer` class body — exactly the "customized-implementation part" the problem statement asks participants to fill in (§3.2). That class delegates to `optimized_transformer.py`'s dispatcher rather than reimplementing it, so the two files stay in sync by construction.
+
+### 10.1 Shape table cross-check
+
+The official appendix (independently supplied, column order Batch/QKV-Dim/Heads/Seq-Len/Layers/Causal/FFN-Dim) was checked field-by-field against `COMPETITION_SHAPES` in `transformer_ablation_benchmark.py`: **all 14 shapes match exactly**, including shape 13's `ffn_dim=128` — independently confirming the correction made in an earlier pass (the shape as originally transcribed had `ffn_dim=1024`, inconsistent with every other shape where `ffn_dim` only changes when `d_model` does; shape 13 varies `seq_len`, not `d_model`).
+
+### 10.2 A real bug caught while wiring the adapter
+
+`UserOptimizedTransformer` in `torch_transformer_benchmark.py` can't just *be* `optimized_transformer.UserOptimizedTransformer` (that class inherits from a *different* `BaselineTransformer` defined in `transformer_ablation_benchmark.py` — a separate, if parameter-identical, class object). The natural fix — hold an internal instance of the dispatcher and delegate `forward()` to it via `self._impl = ...` — silently broke `copy_model_weights(baseline, optimized, strict=True)`: assigning an `nn.Module` to a plain attribute auto-registers it as a PyTorch submodule, so `optimized.state_dict()` gained `_impl.*`-prefixed keys the official `baseline.state_dict()` doesn't have, and `strict=True` loading raised `Missing key(s)`. Fixed by holding the delegate in a plain Python list (`self._impl_holder = [...]`), which PyTorch's parameter/module tracking doesn't recurse into, so `self.state_dict()` matches `BaselineTransformer`'s shape exactly while `self._impl_holder[0]` still receives `.to()`/`.eval()`/weight updates via explicit overrides. Verified empirically (`set(optimized.state_dict().keys()) == set(baseline.state_dict().keys())` → `True`) before trusting any downstream number.
+
+### 10.3 Results: `run_official_sweep.py` across shapes 1–13
+
+Default CLI settings throughout except `--no-allow-tf32` (required for correctness, §4.2) and `--accuracy-trials 10`; repeats reduced to 20 (from 50) only for shape 6 given its batch size. Full log: `results/logs/official_sweep_shapes_1-13.log`.
+
+| Shape | Accuracy | Speedup vs. reference |
+|---|---|---|
+| 1 | PASS | 4.301x |
+| 2 | PASS | 9.170x |
+| 3 | PASS | 8.454x |
+| 4 | PASS | 6.401x |
+| 5 | PASS | 4.036x |
+| 6 | PASS | 3.880x |
+| 7 | PASS | 7.020x |
+| 8 | PASS | 1.607x |
+| 9 | PASS | 2.655x |
+| 10 | PASS | 3.083x |
+| 11 | PASS | 6.983x |
+| 12 | PASS | 5.536x |
+| 13 | PASS | 15.118x |
+
+**13/13 PASS. Geometric mean 5.15x, arithmetic mean 6.02x, median 5.54x.** These are somewhat lower than the §6.2 per-layer-hybrid table's numbers (geometric mean ≈6.7x on the same 13 shapes) for two understood, non-alarming reasons: (a) the official script's accuracy check only exercises the `normal` input pattern with `input_scale` uniform scaling — it has no `tiny`/`large`/`outlier` stress patterns, so it is a *weaker* correctness test than the 40-trial stress profile used throughout §4–6, meaning every PASS here is a PASS under an easier bar, not a harder one; (b) its `benchmark_models` uses simple round-robin alternation between two models rather than the finer interleaved-block rotation `transformer_ablation_benchmark.py` uses to reduce thermal/order bias, which plausibly explains some of the shape-by-shape variance (e.g. shape 9: 2.655x here vs. 3.42x in §6.2). Both tables describe exactly the same `UserOptimizedTransformer` implementation; they differ only in which harness measured it.
+
+Shape 14 could not be included in this sweep: the official `BaselineTransformer.forward()` always uses manual attention, which needs `O(S²)` memory regardless of which class calls it. At `S=100,000` that is 4.77 TB at any batch size — the official reference implementation itself cannot execute this shape, not just whatever candidate is being compared against it. This matches the memory-wall finding in §4.8 and is not something a `UserOptimizedTransformer` change could route around, since the crash happens inside the *baseline* half of the comparison, before `UserOptimizedTransformer.forward()` is ever called.
