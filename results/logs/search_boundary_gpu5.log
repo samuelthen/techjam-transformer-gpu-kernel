@@ -1,0 +1,52 @@
+/homes/gws/stsj/miniconda3/envs/gigatok_vlm/lib/python3.10/site-packages/torch/_inductor/compile_fx.py:167: UserWarning: TensorFloat32 tensor cores for float32 matrix multiplication available but not enabled. Consider setting `torch.set_float32_matmul_precision('high')` for better performance.
+  warnings.warn(
+
+================================================================================
+=== shape 7: TransformerConfig(batch_size=64, seq_len=128, d_model=32, num_heads=4, ffn_dim=32, num_layers=4, causal=True) ===
+81 per-layer patterns to screen (3^4)
+  PPPP  PASS  max_abs=2.41399e-06 n_proj=0 n_core=0
+  PPPL  PASS  max_abs=0.00063771 n_proj=0 n_core=1
+  PPPV  PASS  max_abs=0.00125664 n_proj=1 n_core=0
+  PPLP  PASS  max_abs=0.000975698 n_proj=0 n_core=1
+  PPLL  PASS  max_abs=0.00110763 n_proj=0 n_core=2
+  PPLV  PASS  max_abs=0.00149345 n_proj=1 n_core=1
+  PPVP  PASS  max_abs=0.00165236 n_proj=1 n_core=0
+  PPVL  PASS  max_abs=0.00172478 n_proj=1 n_core=1
+  PPVV  PASS  max_abs=0.00214314 n_proj=2 n_core=0
+  PLPP  PASS  max_abs=0.00127405 n_proj=0 n_core=1
+  PLPL  PASS  max_abs=0.00119191 n_proj=0 n_core=2
+  PLPV  PASS  max_abs=0.0015724 n_proj=1 n_core=1
+  PLLP  PASS  max_abs=0.0012449 n_proj=0 n_core=2
+  PLLL  PASS  max_abs=0.00137091 n_proj=0 n_core=3
+  PLLV  PASS  max_abs=0.00160533 n_proj=1 n_core=2
+  PLVP  PASS  max_abs=0.0017907 n_proj=1 n_core=1
+  PLVL  PASS  max_abs=0.00182736 n_proj=1 n_core=2
+  PVPP  PASS  max_abs=0.00187057 n_proj=1 n_core=0
+  PVPL  PASS  max_abs=0.00199282 n_proj=1 n_core=1
+  PVPV  PASS  max_abs=0.00220925 n_proj=2 n_core=0
+  PVLP  PASS  max_abs=0.00198334 n_proj=1 n_core=1
+  PVLL  PASS  max_abs=0.0022518 n_proj=1 n_core=2
+  PVVL  PASS  max_abs=0.00236791 n_proj=2 n_core=1
+  LPPP  PASS  max_abs=0.00149953 n_proj=0 n_core=1
+  LPPL  PASS  max_abs=0.00159782 n_proj=0 n_core=2
+  LPPV  PASS  max_abs=0.00157106 n_proj=1 n_core=1
+  LPLP  PASS  max_abs=0.00157702 n_proj=0 n_core=2
+  LPLL  PASS  max_abs=0.00160611 n_proj=0 n_core=3
+  LPLV  PASS  max_abs=0.00212458 n_proj=1 n_core=2
+  LPVP  PASS  max_abs=0.00196099 n_proj=1 n_core=1
+  LPVL  PASS  max_abs=0.00203556 n_proj=1 n_core=2
+  LLPP  PASS  max_abs=0.00177425 n_proj=0 n_core=2
+  LLPL  PASS  max_abs=0.001899 n_proj=0 n_core=3
+  LLPV  PASS  max_abs=0.00196254 n_proj=1 n_core=2
+  LLLP  PASS  max_abs=0.00186622 n_proj=0 n_core=3
+  LLLL  PASS  max_abs=0.00192565 n_proj=0 n_core=4
+36/81 patterns PASS for shape 7
+
+=== Benchmarking top passing patterns for shape 7 (compiled) ===
+  PVVL  median=0.3041 ms  speedup=9.852x
+  PPVV  median=0.4055 ms  speedup=7.389x
+  PVPV  median=0.4086 ms  speedup=7.333x
+  PLLV  median=0.3246 ms  speedup=9.230x
+  PLVL  median=0.3359 ms  speedup=8.921x
+
+shape 7 BEST: PVVL  9.852x vs A  <-- BEATS pure LFA

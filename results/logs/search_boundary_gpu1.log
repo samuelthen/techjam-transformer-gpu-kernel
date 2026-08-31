@@ -1,0 +1,139 @@
+/homes/gws/stsj/miniconda3/envs/gigatok_vlm/lib/python3.10/site-packages/torch/_inductor/compile_fx.py:167: UserWarning: TensorFloat32 tensor cores for float32 matrix multiplication available but not enabled. Consider setting `torch.set_float32_matmul_precision('high')` for better performance.
+  warnings.warn(
+
+================================================================================
+=== shape 2: TransformerConfig(batch_size=1, seq_len=128, d_model=128, num_heads=4, ffn_dim=128, num_layers=4, causal=True) ===
+81 per-layer patterns to screen (3^4)
+  PPPP  PASS  max_abs=2.08616e-06 n_proj=0 n_core=0
+  PPPL  PASS  max_abs=0.000529736 n_proj=0 n_core=1
+  PPPV  PASS  max_abs=0.00109005 n_proj=1 n_core=0
+  PPLP  PASS  max_abs=0.000546038 n_proj=0 n_core=1
+  PPLL  PASS  max_abs=0.000656962 n_proj=0 n_core=2
+  PPLV  PASS  max_abs=0.00106764 n_proj=1 n_core=1
+  PPVP  PASS  max_abs=0.00142336 n_proj=1 n_core=0
+  PPVL  PASS  max_abs=0.00147188 n_proj=1 n_core=1
+  PPVV  PASS  max_abs=0.00149512 n_proj=2 n_core=0
+  PLPP  PASS  max_abs=0.000721216 n_proj=0 n_core=1
+  PLPL  PASS  max_abs=0.000819713 n_proj=0 n_core=2
+  PLPV  PASS  max_abs=0.00121862 n_proj=1 n_core=1
+  PLLP  PASS  max_abs=0.000841498 n_proj=0 n_core=2
+  PLLL  PASS  max_abs=0.000941575 n_proj=0 n_core=3
+  PLLV  PASS  max_abs=0.00131588 n_proj=1 n_core=2
+  PLVP  PASS  max_abs=0.00132301 n_proj=1 n_core=1
+  PLVL  PASS  max_abs=0.00132185 n_proj=1 n_core=2
+  PLVV  PASS  max_abs=0.00157422 n_proj=2 n_core=1
+  PVPP  PASS  max_abs=0.00129032 n_proj=1 n_core=0
+  PVPL  PASS  max_abs=0.00143802 n_proj=1 n_core=1
+  PVPV  PASS  max_abs=0.00159901 n_proj=2 n_core=0
+  PVLP  PASS  max_abs=0.00141096 n_proj=1 n_core=1
+  PVLL  PASS  max_abs=0.00140613 n_proj=1 n_core=2
+  PVLV  PASS  max_abs=0.00175488 n_proj=2 n_core=1
+  PVVP  PASS  max_abs=0.00204694 n_proj=2 n_core=0
+  PVVL  PASS  max_abs=0.00176905 n_proj=2 n_core=1
+  PVVV  PASS  max_abs=0.00218538 n_proj=3 n_core=0
+  LPPP  PASS  max_abs=0.000874996 n_proj=0 n_core=1
+  LPPL  PASS  max_abs=0.000945508 n_proj=0 n_core=2
+  LPPV  PASS  max_abs=0.00119102 n_proj=1 n_core=1
+  LPLP  PASS  max_abs=0.00102377 n_proj=0 n_core=2
+  LPLL  PASS  max_abs=0.00120026 n_proj=0 n_core=3
+  LPLV  PASS  max_abs=0.00148535 n_proj=1 n_core=2
+  LPVP  PASS  max_abs=0.00136924 n_proj=1 n_core=1
+  LPVL  PASS  max_abs=0.00139184 n_proj=1 n_core=2
+  LPVV  PASS  max_abs=0.00178635 n_proj=2 n_core=1
+  LLPP  PASS  max_abs=0.00125068 n_proj=0 n_core=2
+  LLPL  PASS  max_abs=0.00126219 n_proj=0 n_core=3
+  LLPV  PASS  max_abs=0.00150728 n_proj=1 n_core=2
+  LLLP  PASS  max_abs=0.00130123 n_proj=0 n_core=3
+  LLLL  PASS  max_abs=0.00135118 n_proj=0 n_core=4
+  LLLV  PASS  max_abs=0.00163561 n_proj=1 n_core=3
+  LLVP  PASS  max_abs=0.00157356 n_proj=1 n_core=2
+  LLVL  PASS  max_abs=0.00152028 n_proj=1 n_core=3
+  LLVV  PASS  max_abs=0.00186503 n_proj=2 n_core=2
+  LVPP  PASS  max_abs=0.00151333 n_proj=1 n_core=1
+  LVPL  PASS  max_abs=0.00160572 n_proj=1 n_core=2
+  LVPV  PASS  max_abs=0.00188088 n_proj=2 n_core=1
+  LVLP  PASS  max_abs=0.00162232 n_proj=1 n_core=2
+  LVLL  PASS  max_abs=0.00162011 n_proj=1 n_core=3
+  LVLV  PASS  max_abs=0.00202738 n_proj=2 n_core=2
+  LVVP  PASS  max_abs=0.00198735 n_proj=2 n_core=1
+  LVVL  PASS  max_abs=0.00209936 n_proj=2 n_core=2
+  VPPP  PASS  max_abs=0.00181553 n_proj=1 n_core=0
+  VPPL  PASS  max_abs=0.00192586 n_proj=1 n_core=1
+  VPPV  PASS  max_abs=0.00223023 n_proj=2 n_core=0
+  VPLP  PASS  max_abs=0.00184429 n_proj=1 n_core=1
+  VPLL  PASS  max_abs=0.00193095 n_proj=1 n_core=2
+  VPVP  PASS  max_abs=0.00214669 n_proj=2 n_core=0
+  VLPP  PASS  max_abs=0.00185156 n_proj=1 n_core=1
+  VLPL  PASS  max_abs=0.00184894 n_proj=1 n_core=2
+  VLPV  PASS  max_abs=0.00226095 n_proj=2 n_core=1
+  VLLP  PASS  max_abs=0.00189042 n_proj=1 n_core=2
+  VLLL  PASS  max_abs=0.00198901 n_proj=1 n_core=3
+  VLLV  PASS  max_abs=0.0021188 n_proj=2 n_core=2
+  VLVP  PASS  max_abs=0.00209057 n_proj=2 n_core=1
+  VLVL  PASS  max_abs=0.00217807 n_proj=2 n_core=2
+  VVPP  PASS  max_abs=0.00237155 n_proj=2 n_core=0
+  VVLP  PASS  max_abs=0.00247645 n_proj=2 n_core=1
+  VVLL  PASS  max_abs=0.00243545 n_proj=2 n_core=2
+70/81 patterns PASS for shape 2
+
+=== Benchmarking top passing patterns for shape 2 (compiled) ===
+  PVVV  median=0.1987 ms  speedup=13.346x
+  LLVV  median=0.1741 ms  speedup=15.230x
+  LVLV  median=0.1976 ms  speedup=13.415x
+  LVVL  median=0.2058 ms  speedup=12.881x
+  VLLV  median=0.2007 ms  speedup=13.209x
+
+shape 2 BEST: LLVV  15.230x vs A  <-- BEATS pure LFA
+
+================================================================================
+=== shape 10: TransformerConfig(batch_size=64, seq_len=128, d_model=128, num_heads=2, ffn_dim=128, num_layers=4, causal=True) ===
+81 per-layer patterns to screen (3^4)
+  PPPP  PASS  max_abs=3.57628e-06 n_proj=0 n_core=0
+  PPPL  PASS  max_abs=0.000665367 n_proj=0 n_core=1
+  PPPV  PASS  max_abs=0.0013597 n_proj=1 n_core=0
+  PPLP  PASS  max_abs=0.000702381 n_proj=0 n_core=1
+  PPLL  PASS  max_abs=0.0010041 n_proj=0 n_core=2
+  PPLV  PASS  max_abs=0.0015384 n_proj=1 n_core=1
+  PPVP  PASS  max_abs=0.00152838 n_proj=1 n_core=0
+  PPVL  PASS  max_abs=0.00163192 n_proj=1 n_core=1
+  PPVV  PASS  max_abs=0.00194924 n_proj=2 n_core=0
+  PLPP  PASS  max_abs=0.000906706 n_proj=0 n_core=1
+  PLPL  PASS  max_abs=0.00104451 n_proj=0 n_core=2
+  PLPV  PASS  max_abs=0.00159824 n_proj=1 n_core=1
+  PLLP  PASS  max_abs=0.00109351 n_proj=0 n_core=2
+  PLLL  PASS  max_abs=0.00128084 n_proj=0 n_core=3
+  PLLV  PASS  max_abs=0.00175774 n_proj=1 n_core=2
+  PLVP  PASS  max_abs=0.00173765 n_proj=1 n_core=1
+  PLVL  PASS  max_abs=0.00195539 n_proj=1 n_core=2
+  PLVV  PASS  max_abs=0.00223696 n_proj=2 n_core=1
+  PVPP  PASS  max_abs=0.00188634 n_proj=1 n_core=0
+  PVPL  PASS  max_abs=0.0019107 n_proj=1 n_core=1
+  PVPV  PASS  max_abs=0.00217497 n_proj=2 n_core=0
+  PVLP  PASS  max_abs=0.00190943 n_proj=1 n_core=1
+  PVLL  PASS  max_abs=0.00195822 n_proj=1 n_core=2
+  PVLV  PASS  max_abs=0.00239038 n_proj=2 n_core=1
+  LPPP  PASS  max_abs=0.00152013 n_proj=0 n_core=1
+  LPPL  PASS  max_abs=0.00161099 n_proj=0 n_core=2
+  LPPV  PASS  max_abs=0.00209117 n_proj=1 n_core=1
+  LPLP  PASS  max_abs=0.00167531 n_proj=0 n_core=2
+  LPLL  PASS  max_abs=0.00181609 n_proj=0 n_core=3
+  LPLV  PASS  max_abs=0.00196125 n_proj=1 n_core=2
+  LLPP  PASS  max_abs=0.0016917 n_proj=0 n_core=2
+  LLPL  PASS  max_abs=0.0017606 n_proj=0 n_core=3
+  LLPV  PASS  max_abs=0.00209296 n_proj=1 n_core=2
+  LLLP  PASS  max_abs=0.00183439 n_proj=0 n_core=3
+  LLLL  PASS  max_abs=0.00192887 n_proj=0 n_core=4
+  LLVP  PASS  max_abs=0.00223467 n_proj=1 n_core=2
+  LVPP  PASS  max_abs=0.00240988 n_proj=1 n_core=1
+  LVLP  PASS  max_abs=0.00238782 n_proj=1 n_core=2
+  LVLL  PASS  max_abs=0.00255838 n_proj=1 n_core=3
+39/81 patterns PASS for shape 10
+
+=== Benchmarking top passing patterns for shape 10 (compiled) ===
+  PLVV  median=0.8294 ms  speedup=3.631x
+  PVLV  median=0.8315 ms  speedup=3.622x
+  PPVV  median=0.9144 ms  speedup=3.293x
+  PVPV  median=0.9359 ms  speedup=3.218x
+  LVLL  median=0.8387 ms  speedup=3.591x
+
+shape 10 BEST: PLVV  3.631x vs A  <-- BEATS pure LFA

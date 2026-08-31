@@ -1,0 +1,13 @@
+shape 14 config: TransformerConfig(batch_size=32, seq_len=100000, d_model=1024, num_heads=16, ffn_dim=1024, num_layers=2, causal=True), chunk_size=8
+
+=== Cross-check vs H at chunk_size=8, full S=100000, 3 trials/pattern (12 total) ===
+PP  (== H itself, skipping self-comparison)
+PL  DIVERGE  max_abs=0.00308418  failed=9253/2457600000
+LP  AGREE  max_abs=0.00132501  failed=0/2457600000
+LL  DIVERGE  max_abs=0.00306649  failed=10966/2457600000
+
+=== Timing agreeing patterns (uncompiled -- compile cost not worth it at this scale for a quick check) ===
+H (PP) median=60226.87 ms/chunk
+PL  DIVERGE -- not timed (would not pass the correctness gate)
+LP  median=32484.68 ms/chunk  speedup vs H=1.854x
+LL  DIVERGE -- not timed (would not pass the correctness gate)

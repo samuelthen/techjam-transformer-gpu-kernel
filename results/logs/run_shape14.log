@@ -1,0 +1,87 @@
+/homes/gws/stsj/miniconda3/envs/gigatok_vlm/lib/python3.10/site-packages/torch/_inductor/compile_fx.py:167: UserWarning: TensorFloat32 tensor cores for float32 matrix multiplication available but not enabled. Consider setting `torch.set_float32_matmul_precision('high')` for better performance.
+  warnings.warn(
+=== Official competition sweep ===
+shape_ids=[14]
+Shape 14 uses exact-A prefix validation plus full-size memory-efficient candidate timing.
+
+================================================================================================================
+=== competition shape 14 ===
+TransformerConfig(batch_size=32, seq_len=100000, d_model=1024, num_heads=16, ffn_dim=1024, num_layers=2, causal=True)
+estimated explicit-attention score+softmax working set (lower bound)=38146.97 GiB
+activation scale: input=12.21 GiB, packed-QKV output=36.62 GiB
+attention-only forward work across layers=1310.720 TFLOP (1.310720 PFLOP)
+[long-safe] exact A is validated only on a manageable prefix; full-size timing never materializes SxS scores/masks.
+[long-safe] correctness prefix: S=512; full-size reference=G
+[long-safe] full-size candidate set: G,H,L,LFA
+=== Configuration ===
+device=cuda:1, dtype=torch.float32, fast_dtype=torch.float16, torch=2.5.1+cu121, sdpa_backend=auto
+gpu=NVIDIA RTX A6000
+cuda_compute_capability=8.6
+padding_ratio=0, mask-skip effective=True
+selected variants=A,H,L,LFA
+full-size requested timing set=G,H,L,LFA
+
+=== Variants ===
+Var  Name                               QKV     Attention          Mask     GELU    Fast dtype   Selective                      Compile 
+----------------------------------------------------------------------------------------------------------------------------------------------
+A    baseline                           sep     manual             no       none    -            none                           no      
+H    full                               packed  sdpa               yes      none    -            none                           no      
+L    full+compile                       packed  sdpa               yes      none    -            none                           yes     
+LFA  attention_core+flash_attn+compile  packed  flash-attn         yes      none    float16      attention_core                 yes     
+
+[accuracy] exact-A prefix S=512 (full S=100000)
+
+=== Accuracy ablation ===
+criterion: abs_error <= 0.002 OR relative_error <= 2.00%
+accuracy_profile=stress, patterns=normal,tiny,large,outlier, trials_per_pattern=10
+Var  Name                              Status       Max abs      Max rel         Failed
+----------------------------------------------------------------------------------------------
+A    baseline                          REF                0            0              0
+H    full                              PASS     6.19888e-06      21685.4              0
+L    full+compile                      PASS     6.19888e-06      16976.7              0
+LFA  attention_core+flash_attn+compile PASS      0.00187857  2.62394e+06              0
+G    sdpa+mask_skip                    PASS     6.19888e-06      54213.6              0
+[long-seq timing] warmup=1, repeats=3, rounds=1
+
+=== Performance ablation ===
+all variants use the same fixed benchmark input
+CUDA: torch.cuda.Event timing
+warming up: G, H, L, LFA
+Traceback (most recent call last):
+  File "/local1/stsj/misc/transformer_ablation_benchmark.py", line 3483, in <module>
+    raise SystemExit(main())
+  File "/local1/stsj/misc/transformer_ablation_benchmark.py", line 3430, in main
+    result = run_one_configuration(
+  File "/local1/stsj/misc/transformer_ablation_benchmark.py", line 3237, in run_one_configuration
+    timings = benchmark_variants(
+  File "/local1/stsj/misc/transformer_ablation_benchmark.py", line 2184, in benchmark_variants
+    warmup_model(
+  File "/local1/stsj/misc/transformer_ablation_benchmark.py", line 2064, in warmup_model
+    model(x, valid_mask)
+  File "/homes/gws/stsj/miniconda3/envs/gigatok_vlm/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/homes/gws/stsj/miniconda3/envs/gigatok_vlm/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/local1/stsj/misc/transformer_ablation_benchmark.py", line 1188, in forward
+    x = layer(x, effective_mask, self.config.causal)
+  File "/homes/gws/stsj/miniconda3/envs/gigatok_vlm/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/homes/gws/stsj/miniconda3/envs/gigatok_vlm/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/local1/stsj/misc/transformer_ablation_benchmark.py", line 1120, in forward
+    x = x + self.attention(
+  File "/homes/gws/stsj/miniconda3/envs/gigatok_vlm/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/homes/gws/stsj/miniconda3/envs/gigatok_vlm/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/local1/stsj/misc/transformer_ablation_benchmark.py", line 1056, in forward
+    q, k, v = self._project_qkv_hnsd(x)
+  File "/local1/stsj/misc/transformer_ablation_benchmark.py", line 871, in _project_qkv_hnsd
+    self.k_proj(x)
+  File "/homes/gws/stsj/miniconda3/envs/gigatok_vlm/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/homes/gws/stsj/miniconda3/envs/gigatok_vlm/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/homes/gws/stsj/miniconda3/envs/gigatok_vlm/lib/python3.10/site-packages/torch/nn/modules/linear.py", line 125, in forward
+    return F.linear(input, self.weight, self.bias)
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 12.21 GiB. GPU 1 has a total capacity of 47.40 GiB of which 9.25 GiB is free. Including non-PyTorch memory, this process has 38.15 GiB memory in use. Of the allocated memory 37.81 GiB is allocated by PyTorch, with 962.00 MiB allocated in private pools (e.g., CUDA Graphs), and 11.44 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)

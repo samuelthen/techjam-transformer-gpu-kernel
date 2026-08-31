@@ -1,0 +1,15 @@
+shape 14 config: TransformerConfig(batch_size=32, seq_len=100000, d_model=1024, num_heads=16, ffn_dim=1024, num_layers=2, causal=True)
+
+=== Finding largest feasible batch chunk (H, uncompiled) ===
+chunk= 32  OOM
+chunk= 16  OOM
+chunk=  8  OK  peak=24.48 GiB
+
+Using chunk_size=8 for full timing (4 sequential chunks + 0 remainder to cover full batch=32)
+
+=== Cross-check at chunk_size=8, full S=100000 (LFA vs H, since exact-A is infeasible at this length regardless of chunk size) ===
+LFA vs H: DIVERGE  max_abs=0.00323594  failed=33910/9830400000
+
+=== Timing at chunk_size=8, full S=100000 (single GPU, single chunk) ===
+H    chunk_size=8  median=59826.64 ms/chunk  (sequential full-batch equivalent: 239306.55 ms over 4 chunks; parallel-across-GPUs equivalent: 59826.64 ms)
+LFA  chunk_size=8  median=4651.02 ms/chunk  (sequential full-batch equivalent: 18604.07 ms over 4 chunks; parallel-across-GPUs equivalent: 4651.02 ms)

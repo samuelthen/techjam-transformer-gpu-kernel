@@ -1,0 +1,44 @@
+/homes/gws/stsj/miniconda3/envs/gigatok_vlm/lib/python3.10/site-packages/torch/_inductor/compile_fx.py:167: UserWarning: TensorFloat32 tensor cores for float32 matrix multiplication available but not enabled. Consider setting `torch.set_float32_matmul_precision('high')` for better performance.
+  warnings.warn(
+shape 6 config: TransformerConfig(batch_size=10000, seq_len=128, d_model=128, num_heads=4, ffn_dim=128, num_layers=4, causal=True)
+torch=2.5.1+cu121, gpu=NVIDIA RTX A6000, TF32=False
+
+40 stress trials will be (re)generated per pattern to keep memory flat (no persistent cache).
+
+=== Stage 1: accuracy screen, all 16 per-layer patterns (F=FP16 FlashAttn, P=FP32 SDPA) ===
+PPPP  (n_flash=0)  PASS   max_abs=3.8147e-06 max_rel=529872 failed=0/6553600000
+PPPF  (n_flash=1)  PASS   max_abs=0.000814486 max_rel=1.10526e+08 failed=0/6553600000
+PPFP  (n_flash=1)  PASS   max_abs=0.000934958 max_rel=1.50821e+08 failed=0/6553600000
+PPFF  (n_flash=2)  PASS   max_abs=0.00111783 max_rel=1.9002e+08 failed=0/6553600000
+PFPP  (n_flash=1)  PASS   max_abs=0.00118812 max_rel=1.74663e+08 failed=0/6553600000
+PFPF  (n_flash=2)  PASS   max_abs=0.00137842 max_rel=2.94791e+08 failed=0/6553600000
+PFFP  (n_flash=2)  PASS   max_abs=0.00144931 max_rel=1.22756e+08 failed=0/6553600000
+PFFF  (n_flash=3)  PASS   max_abs=0.00176448 max_rel=1.65389e+08 failed=0/6553600000
+FPPP  (n_flash=1)  PASS   max_abs=0.00184271 max_rel=1.43649e+08 failed=0/6553600000
+FPPF  (n_flash=2)  FAIL   max_abs=0.00204199 max_rel=1.99489e+08 failed=1/6553600000
+FPFP  (n_flash=2)  PASS   max_abs=0.0020562 max_rel=2.19064e+08 failed=0/6553600000
+FPFF  (n_flash=3)  PASS   max_abs=0.00211301 max_rel=2.04101e+08 failed=0/6553600000
+FFPP  (n_flash=2)  PASS   max_abs=0.00208127 max_rel=1.72313e+08 failed=0/6553600000
+FFPF  (n_flash=3)  FAIL   max_abs=0.00215632 max_rel=2.60965e+08 failed=1/6553600000
+FFFP  (n_flash=3)  FAIL   max_abs=0.00221896 max_rel=2.48719e+08 failed=3/6553600000
+FFFF  (n_flash=4)  FAIL   max_abs=0.00229704 max_rel=2.75222e+08 failed=4/6553600000
+
+12/16 patterns PASS with zero failures.
+
+=== Stage 2: benchmarking passing patterns (compiled), most-FP16 first ===
+PFFF  (n_flash=3)  median=149.9822 ms
+FPFF  (n_flash=3)  median=150.0580 ms
+PPFF  (n_flash=2)  median=165.9433 ms
+PFPF  (n_flash=2)  median=166.5567 ms
+PFFP  (n_flash=2)  median=165.9771 ms
+FPFP  (n_flash=2)  median=166.2648 ms
+FFPP  (n_flash=2)  median=166.0396 ms
+PPPF  (n_flash=1)  median=181.5142 ms
+PPFP  (n_flash=1)  median=181.7119 ms
+PFPP  (n_flash=1)  median=181.7713 ms
+FPPP  (n_flash=1)  median=181.3647 ms
+PPPP  (n_flash=0)  median=196.5722 ms
+
+Fastest passing hybrid pattern: PFFF (n_flash=3) at 149.9822 ms median
+A (baseline) median=537.9410 ms
+Best hybrid speedup vs A: 3.587x

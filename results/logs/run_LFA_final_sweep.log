@@ -1,0 +1,1051 @@
+/homes/gws/stsj/miniconda3/envs/gigatok_vlm/lib/python3.10/site-packages/torch/_inductor/compile_fx.py:167: UserWarning: TensorFloat32 tensor cores for float32 matrix multiplication available but not enabled. Consider setting `torch.set_float32_matmul_precision('high')` for better performance.
+  warnings.warn(
+=== Official competition sweep ===
+shape_ids=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+Shape 14 uses exact-A prefix validation plus full-size memory-efficient candidate timing.
+
+================================================================================================================
+=== competition shape 1 ===
+TransformerConfig(batch_size=64, seq_len=128, d_model=128, num_heads=4, ffn_dim=128, num_layers=4, causal=True)
+estimated explicit-attention score+softmax working set (lower bound)=0.03 GiB
+activation scale: input=0.00 GiB, packed-QKV output=0.01 GiB
+attention-only forward work across layers=0.001 TFLOP (0.000001 PFLOP)
+=== Configuration ===
+device=cuda, dtype=torch.float32, fast_dtype=torch.float16, torch=2.5.1+cu121, sdpa_backend=auto
+gpu=NVIDIA RTX A6000
+cuda_compute_capability=8.6
+padding_ratio=0, mask-skip effective=True
+selected variants=A,H,L,U,LFA
+
+=== Variants ===
+Var  Name                               QKV     Attention          Mask     GELU    Fast dtype   Selective                      Compile 
+----------------------------------------------------------------------------------------------------------------------------------------------
+A    baseline                           sep     manual             no       none    -            none                           no      
+H    full                               packed  sdpa               yes      none    -            none                           no      
+L    full+compile                       packed  sdpa               yes      none    -            none                           yes     
+U    selective+attention_core           packed  sdpa               yes      none    float16      attention_core                 no      
+LFA  attention_core+flash_attn+compile  packed  flash-attn         yes      none    float16      attention_core                 yes     
+
+=== Accuracy ablation ===
+criterion: abs_error <= 0.002 OR relative_error <= 2.00%
+accuracy_profile=stress, patterns=normal,tiny,large,outlier, trials_per_pattern=10
+Var  Name                              Status       Max abs      Max rel         Failed
+----------------------------------------------------------------------------------------------
+A    baseline                          REF                0            0              0
+H    full                              PASS     2.98023e-06      6.40909              0
+L    full+compile                      PASS     3.15905e-06      4.85321              0
+U    selective+attention_core          PASS      0.00183013      801.636              0
+LFA  attention_core+flash_attn+compile PASS      0.00170383      1072.72              0
+
+=== Performance ablation ===
+all variants use the same fixed benchmark input
+CUDA: torch.cuda.Event timing
+warming up: A, H, L, U, LFA
+timing design: interleaved blocks of <= 5 calls (10 blocks/round)
+round 1/3
+round 2/3
+round 3/3
+
+=== Ablation summary ===
+timing reference=A (baseline)
+Var  Name                               Accuracy    Median ms   Speedup  Latency Δ       Token/s
+-------------------------------------------------------------------------------------------------------
+A    baseline                           REF            3.8134    1.000x     +0.00%    2148227.74
+H    full                               PASS           1.9159    1.990x    -49.76%    4275788.25
+L    full+compile                       PASS           1.3783    2.767x    -63.86%    5943536.38
+U    selective+attention_core           PASS           1.7388    2.193x    -54.40%    4711425.19
+LFA  attention_core+flash_attn+compile  PASS           0.9196    4.147x    -75.89%    8908685.70
+
+Latency distribution:
+Var      Mean ms      P90 ms      Min ms
+--------------------------------------------
+A         3.8557      3.9200      3.7919
+H         1.9394      1.9956      1.8995
+L         1.4398      1.6428      1.3691
+U         1.7675      1.8556      1.7254
+LFA       0.9843      1.2143      0.9134
+
+=== Optimization effect analysis ===
+Need more matched A-H variants to estimate factorial effects.
+
+=== New fast-path effects vs H ===
+H->L 1.390x  (-28.06% latency)  full+compile
+H->U 1.102x  (-9.25% latency)  selective+attention_core
+H->LFA 2.084x  (-52.00% latency)  attention_core+flash_attn+compile
+
+=== Precision-boundary search vs H ===
+H->U  1.102x  (-9.25% latency)  selective+attention_core
+
+Full A->H speedup: 1.990x
+Best timed variant: LFA (attention_core+flash_attn+compile), 4.147x vs A
+
+Note: low-precision / approximate / external variants are only valid when the accuracy table says PASS.
+
+CSV written to: a6000_competition_LFA_final.csv
+
+================================================================================================================
+=== competition shape 2 ===
+TransformerConfig(batch_size=1, seq_len=128, d_model=128, num_heads=4, ffn_dim=128, num_layers=4, causal=True)
+estimated explicit-attention score+softmax working set (lower bound)=0.00 GiB
+activation scale: input=0.00 GiB, packed-QKV output=0.00 GiB
+attention-only forward work across layers=0.000 TFLOP (0.000000 PFLOP)
+=== Configuration ===
+device=cuda, dtype=torch.float32, fast_dtype=torch.float16, torch=2.5.1+cu121, sdpa_backend=auto
+gpu=NVIDIA RTX A6000
+cuda_compute_capability=8.6
+padding_ratio=0, mask-skip effective=True
+selected variants=A,H,L,U,LFA
+
+=== Variants ===
+Var  Name                               QKV     Attention          Mask     GELU    Fast dtype   Selective                      Compile 
+----------------------------------------------------------------------------------------------------------------------------------------------
+A    baseline                           sep     manual             no       none    -            none                           no      
+H    full                               packed  sdpa               yes      none    -            none                           no      
+L    full+compile                       packed  sdpa               yes      none    -            none                           yes     
+U    selective+attention_core           packed  sdpa               yes      none    float16      attention_core                 no      
+LFA  attention_core+flash_attn+compile  packed  flash-attn         yes      none    float16      attention_core                 yes     
+
+=== Accuracy ablation ===
+criterion: abs_error <= 0.002 OR relative_error <= 2.00%
+accuracy_profile=stress, patterns=normal,tiny,large,outlier, trials_per_pattern=10
+Var  Name                              Status       Max abs      Max rel         Failed
+----------------------------------------------------------------------------------------------
+A    baseline                          REF                0            0              0
+H    full                              PASS     2.86102e-06      1.71483              0
+L    full+compile                      PASS     2.68221e-06       1.8251              0
+U    selective+attention_core          PASS      0.00138074      470.299              0
+LFA  attention_core+flash_attn+compile PASS      0.00143576      547.274              0
+
+=== Performance ablation ===
+all variants use the same fixed benchmark input
+CUDA: torch.cuda.Event timing
+warming up: A, H, L, U, LFA
+timing design: interleaved blocks of <= 5 calls (10 blocks/round)
+round 1/3
+round 2/3
+round 3/3
+
+=== Ablation summary ===
+timing reference=A (baseline)
+Var  Name                               Accuracy    Median ms   Speedup  Latency Δ       Token/s
+-------------------------------------------------------------------------------------------------------
+A    baseline                           REF            2.6025    1.000x     +0.00%      49182.95
+H    full                               PASS           1.0322    2.521x    -60.34%     124004.09
+L    full+compile                       PASS           0.1874   13.888x    -92.80%     683060.12
+U    selective+attention_core           PASS           1.2692    2.050x    -51.23%     100847.12
+LFA  attention_core+flash_attn+compile  PASS           0.1823   14.278x    -93.00%     702247.18
+
+Latency distribution:
+Var      Mean ms      P90 ms      Min ms
+--------------------------------------------
+A         2.6656      2.9086      2.5252
+H         1.0644      1.2017      1.0107
+L         0.2692      0.6352      0.1864
+U         1.3088      1.4750      1.2420
+LFA       0.2599      0.6176      0.1638
+
+=== Optimization effect analysis ===
+Need more matched A-H variants to estimate factorial effects.
+
+=== New fast-path effects vs H ===
+H->L 5.508x  (-81.85% latency)  full+compile
+H->U 0.813x  (+22.96% latency)  selective+attention_core
+H->LFA 5.663x  (-82.34% latency)  attention_core+flash_attn+compile
+
+=== Precision-boundary search vs H ===
+H->U  0.813x  (+22.96% latency)  selective+attention_core
+
+Full A->H speedup: 2.521x
+Best timed variant: LFA (attention_core+flash_attn+compile), 14.278x vs A
+
+Note: low-precision / approximate / external variants are only valid when the accuracy table says PASS.
+
+CSV written to: a6000_competition_LFA_final.csv
+
+================================================================================================================
+=== competition shape 3 ===
+TransformerConfig(batch_size=4, seq_len=128, d_model=128, num_heads=4, ffn_dim=128, num_layers=4, causal=True)
+estimated explicit-attention score+softmax working set (lower bound)=0.00 GiB
+activation scale: input=0.00 GiB, packed-QKV output=0.00 GiB
+attention-only forward work across layers=0.000 TFLOP (0.000000 PFLOP)
+=== Configuration ===
+device=cuda, dtype=torch.float32, fast_dtype=torch.float16, torch=2.5.1+cu121, sdpa_backend=auto
+gpu=NVIDIA RTX A6000
+cuda_compute_capability=8.6
+padding_ratio=0, mask-skip effective=True
+selected variants=A,H,L,U,LFA
+
+=== Variants ===
+Var  Name                               QKV     Attention          Mask     GELU    Fast dtype   Selective                      Compile 
+----------------------------------------------------------------------------------------------------------------------------------------------
+A    baseline                           sep     manual             no       none    -            none                           no      
+H    full                               packed  sdpa               yes      none    -            none                           no      
+L    full+compile                       packed  sdpa               yes      none    -            none                           yes     
+U    selective+attention_core           packed  sdpa               yes      none    float16      attention_core                 no      
+LFA  attention_core+flash_attn+compile  packed  flash-attn         yes      none    float16      attention_core                 yes     
+
+=== Accuracy ablation ===
+criterion: abs_error <= 0.002 OR relative_error <= 2.00%
+accuracy_profile=stress, patterns=normal,tiny,large,outlier, trials_per_pattern=10
+Var  Name                              Status       Max abs      Max rel         Failed
+----------------------------------------------------------------------------------------------
+A    baseline                          REF                0            0              0
+H    full                              PASS     2.68966e-06     0.366221              0
+L    full+compile                      PASS      2.6226e-06     0.288961              0
+U    selective+attention_core          PASS      0.00179212       59.118              0
+LFA  attention_core+flash_attn+compile PASS      0.00179224      58.3961              0
+
+=== Performance ablation ===
+all variants use the same fixed benchmark input
+CUDA: torch.cuda.Event timing
+warming up: A, H, L, U, LFA
+timing design: interleaved blocks of <= 5 calls (10 blocks/round)
+round 1/3
+round 2/3
+round 3/3
+
+=== Ablation summary ===
+timing reference=A (baseline)
+Var  Name                               Accuracy    Median ms   Speedup  Latency Δ       Token/s
+-------------------------------------------------------------------------------------------------------
+A    baseline                           REF            2.5774    1.000x     +0.00%     198650.42
+H    full                               PASS           1.0250    2.514x    -60.23%     499500.47
+L    full+compile                       PASS           0.2232   11.546x    -91.34%    2293577.97
+U    selective+attention_core           PASS           1.2729    2.025x    -50.61%     402217.21
+LFA  attention_core+flash_attn+compile  PASS           0.1894   13.605x    -92.65%    2702702.74
+
+Latency distribution:
+Var      Mean ms      P90 ms      Min ms
+--------------------------------------------
+A         2.6323      2.8723      2.4934
+H         1.0571      1.2045      1.0004
+L         0.3055      0.6800      0.2222
+U         1.3063      1.4794      1.2409
+LFA       0.2714      0.6401      0.1884
+
+=== Optimization effect analysis ===
+Need more matched A-H variants to estimate factorial effects.
+
+=== New fast-path effects vs H ===
+H->L 4.592x  (-78.22% latency)  full+compile
+H->U 0.805x  (+24.19% latency)  selective+attention_core
+H->LFA 5.411x  (-81.52% latency)  attention_core+flash_attn+compile
+
+=== Precision-boundary search vs H ===
+H->U  0.805x  (+24.19% latency)  selective+attention_core
+
+Full A->H speedup: 2.514x
+Best timed variant: LFA (attention_core+flash_attn+compile), 13.605x vs A
+
+Note: low-precision / approximate / external variants are only valid when the accuracy table says PASS.
+
+CSV written to: a6000_competition_LFA_final.csv
+
+================================================================================================================
+=== competition shape 4 ===
+TransformerConfig(batch_size=16, seq_len=128, d_model=128, num_heads=4, ffn_dim=128, num_layers=4, causal=True)
+estimated explicit-attention score+softmax working set (lower bound)=0.01 GiB
+activation scale: input=0.00 GiB, packed-QKV output=0.00 GiB
+attention-only forward work across layers=0.000 TFLOP (0.000000 PFLOP)
+=== Configuration ===
+device=cuda, dtype=torch.float32, fast_dtype=torch.float16, torch=2.5.1+cu121, sdpa_backend=auto
+gpu=NVIDIA RTX A6000
+cuda_compute_capability=8.6
+padding_ratio=0, mask-skip effective=True
+selected variants=A,H,L,U,LFA
+
+=== Variants ===
+Var  Name                               QKV     Attention          Mask     GELU    Fast dtype   Selective                      Compile 
+----------------------------------------------------------------------------------------------------------------------------------------------
+A    baseline                           sep     manual             no       none    -            none                           no      
+H    full                               packed  sdpa               yes      none    -            none                           no      
+L    full+compile                       packed  sdpa               yes      none    -            none                           yes     
+U    selective+attention_core           packed  sdpa               yes      none    float16      attention_core                 no      
+LFA  attention_core+flash_attn+compile  packed  flash-attn         yes      none    float16      attention_core                 yes     
+
+=== Accuracy ablation ===
+criterion: abs_error <= 0.002 OR relative_error <= 2.00%
+accuracy_profile=stress, patterns=normal,tiny,large,outlier, trials_per_pattern=10
+Var  Name                              Status       Max abs      Max rel         Failed
+----------------------------------------------------------------------------------------------
+A    baseline                          REF                0            0              0
+H    full                              PASS     3.27826e-06      2.13333              0
+L    full+compile                      PASS     3.45707e-06          3.5              0
+U    selective+attention_core          PASS      0.00198764      1962.99              0
+LFA  attention_core+flash_attn+compile PASS      0.00199741      2109.73              0
+
+=== Performance ablation ===
+all variants use the same fixed benchmark input
+CUDA: torch.cuda.Event timing
+warming up: A, H, L, U, LFA
+timing design: interleaved blocks of <= 5 calls (10 blocks/round)
+round 1/3
+round 2/3
+round 3/3
+
+=== Ablation summary ===
+timing reference=A (baseline)
+Var  Name                               Accuracy    Median ms   Speedup  Latency Δ       Token/s
+-------------------------------------------------------------------------------------------------------
+A    baseline                           REF            2.5406    1.000x     +0.00%     806101.17
+H    full                               PASS           1.0260    2.476x    -59.61%    1996008.09
+L    full+compile                       PASS           0.4342    5.852x    -82.91%    4716981.15
+U    selective+attention_core           PASS           1.2710    1.999x    -49.97%    1611360.16
+LFA  attention_core+flash_attn+compile  PASS           0.3103    8.188x    -87.79%    6600659.89
+
+Latency distribution:
+Var      Mean ms      P90 ms      Min ms
+--------------------------------------------
+A         2.6123      2.8593      2.5076
+H         1.0695      1.2012      1.0044
+L         0.5063      0.7919      0.4301
+U         1.3186      1.4716      1.2431
+LFA       0.3821      0.6601      0.3082
+
+=== Optimization effect analysis ===
+Need more matched A-H variants to estimate factorial effects.
+
+=== New fast-path effects vs H ===
+H->L 2.363x  (-57.68% latency)  full+compile
+H->U 0.807x  (+23.87% latency)  selective+attention_core
+H->LFA 3.307x  (-69.76% latency)  attention_core+flash_attn+compile
+
+=== Precision-boundary search vs H ===
+H->U  0.807x  (+23.87% latency)  selective+attention_core
+
+Full A->H speedup: 2.476x
+Best timed variant: LFA (attention_core+flash_attn+compile), 8.188x vs A
+
+Note: low-precision / approximate / external variants are only valid when the accuracy table says PASS.
+
+CSV written to: a6000_competition_LFA_final.csv
+
+================================================================================================================
+=== competition shape 5 ===
+TransformerConfig(batch_size=128, seq_len=128, d_model=128, num_heads=4, ffn_dim=128, num_layers=4, causal=True)
+estimated explicit-attention score+softmax working set (lower bound)=0.06 GiB
+activation scale: input=0.01 GiB, packed-QKV output=0.02 GiB
+attention-only forward work across layers=0.002 TFLOP (0.000002 PFLOP)
+=== Configuration ===
+device=cuda, dtype=torch.float32, fast_dtype=torch.float16, torch=2.5.1+cu121, sdpa_backend=auto
+gpu=NVIDIA RTX A6000
+cuda_compute_capability=8.6
+padding_ratio=0, mask-skip effective=True
+selected variants=A,H,L,U,LFA
+
+=== Variants ===
+Var  Name                               QKV     Attention          Mask     GELU    Fast dtype   Selective                      Compile 
+----------------------------------------------------------------------------------------------------------------------------------------------
+A    baseline                           sep     manual             no       none    -            none                           no      
+H    full                               packed  sdpa               yes      none    -            none                           no      
+L    full+compile                       packed  sdpa               yes      none    -            none                           yes     
+U    selective+attention_core           packed  sdpa               yes      none    float16      attention_core                 no      
+LFA  attention_core+flash_attn+compile  packed  flash-attn         yes      none    float16      attention_core                 yes     
+
+=== Accuracy ablation ===
+criterion: abs_error <= 0.002 OR relative_error <= 2.00%
+accuracy_profile=stress, patterns=normal,tiny,large,outlier, trials_per_pattern=10
+Var  Name                              Status       Max abs      Max rel         Failed
+----------------------------------------------------------------------------------------------
+A    baseline                          REF                0            0              0
+H    full                              PASS     3.33786e-06      19.6667              0
+L    full+compile                      PASS     3.13669e-06      18.3333              0
+U    selective+attention_core          PASS      0.00196683       4732.3              0
+LFA  attention_core+flash_attn+compile PASS        0.002123      3299.96              0
+
+=== Performance ablation ===
+all variants use the same fixed benchmark input
+CUDA: torch.cuda.Event timing
+warming up: A, H, L, U, LFA
+timing design: interleaved blocks of <= 5 calls (10 blocks/round)
+round 1/3
+round 2/3
+round 3/3
+
+=== Ablation summary ===
+timing reference=A (baseline)
+Var  Name                               Accuracy    Median ms   Speedup  Latency Δ       Token/s
+-------------------------------------------------------------------------------------------------------
+A    baseline                           REF            7.5227    1.000x     +0.00%    2177944.86
+H    full                               PASS           3.6506    2.061x    -51.47%    4488078.66
+L    full+compile                       PASS           2.6481    2.841x    -64.80%    6187161.88
+U    selective+attention_core           PASS           3.3188    2.267x    -55.88%    4936747.92
+LFA  attention_core+flash_attn+compile  PASS           1.8534    4.059x    -75.36%    8839778.78
+
+Latency distribution:
+Var      Mean ms      P90 ms      Min ms
+--------------------------------------------
+A         7.5390      7.5871      7.4516
+H         3.6657      3.7440      3.6076
+L         2.7094      2.9460      2.6245
+U         3.3306      3.3866      3.2758
+LFA       1.9141      2.1540      1.8381
+
+=== Optimization effect analysis ===
+Need more matched A-H variants to estimate factorial effects.
+
+=== New fast-path effects vs H ===
+H->L 1.379x  (-27.46% latency)  full+compile
+H->U 1.100x  (-9.09% latency)  selective+attention_core
+H->LFA 1.970x  (-49.23% latency)  attention_core+flash_attn+compile
+
+=== Precision-boundary search vs H ===
+H->U  1.100x  (-9.09% latency)  selective+attention_core
+
+Full A->H speedup: 2.061x
+Best timed variant: LFA (attention_core+flash_attn+compile), 4.059x vs A
+
+Note: low-precision / approximate / external variants are only valid when the accuracy table says PASS.
+
+CSV written to: a6000_competition_LFA_final.csv
+
+================================================================================================================
+=== competition shape 6 ===
+TransformerConfig(batch_size=10000, seq_len=128, d_model=128, num_heads=4, ffn_dim=128, num_layers=4, causal=True)
+estimated explicit-attention score+softmax working set (lower bound)=4.88 GiB
+activation scale: input=0.61 GiB, packed-QKV output=1.83 GiB
+attention-only forward work across layers=0.168 TFLOP (0.000168 PFLOP)
+=== Configuration ===
+device=cuda, dtype=torch.float32, fast_dtype=torch.float16, torch=2.5.1+cu121, sdpa_backend=auto
+gpu=NVIDIA RTX A6000
+cuda_compute_capability=8.6
+padding_ratio=0, mask-skip effective=True
+selected variants=A,H,L,U,LFA
+
+=== Variants ===
+Var  Name                               QKV     Attention          Mask     GELU    Fast dtype   Selective                      Compile 
+----------------------------------------------------------------------------------------------------------------------------------------------
+A    baseline                           sep     manual             no       none    -            none                           no      
+H    full                               packed  sdpa               yes      none    -            none                           no      
+L    full+compile                       packed  sdpa               yes      none    -            none                           yes     
+U    selective+attention_core           packed  sdpa               yes      none    float16      attention_core                 no      
+LFA  attention_core+flash_attn+compile  packed  flash-attn         yes      none    float16      attention_core                 yes     
+
+=== Accuracy ablation ===
+criterion: abs_error <= 0.002 OR relative_error <= 2.00%
+accuracy_profile=stress, patterns=normal,tiny,large,outlier, trials_per_pattern=10
+Var  Name                              Status       Max abs      Max rel         Failed
+----------------------------------------------------------------------------------------------
+A    baseline                          REF                0            0              0
+H    full                              PASS     4.17233e-06  1.27191e+06              0
+L    full+compile                      PASS     4.35114e-06  1.11149e+06              0
+U    selective+attention_core          FAIL      0.00266254  4.20323e+08              2
+LFA  attention_core+flash_attn+compile FAIL      0.00266254   3.9608e+08              5
+
+Numerical failures: U, LFA
+
+=== Performance ablation ===
+all variants use the same fixed benchmark input
+CUDA: torch.cuda.Event timing
+warming up: A, H, L, U, LFA
+timing design: interleaved blocks of <= 5 calls (10 blocks/round)
+round 1/3
+round 2/3
+round 3/3
+
+=== Ablation summary ===
+timing reference=A (baseline)
+Var  Name                               Accuracy    Median ms   Speedup  Latency Δ       Token/s
+-------------------------------------------------------------------------------------------------------
+A    baseline                           REF          538.3624    1.000x     +0.00%    2377580.76
+H    full                               PASS         262.1440    2.054x    -51.31%    4882812.27
+L    full+compile                       PASS         196.5629    2.739x    -63.49%    6511909.03
+U    selective+attention_core           FAIL         236.3638    2.278x    -56.10%    5415381.39
+LFA  attention_core+flash_attn+compile  FAIL         133.4892    4.033x    -75.20%    9588794.22
+
+Latency distribution:
+Var      Mean ms      P90 ms      Min ms
+--------------------------------------------
+A       538.5955    539.3682    536.3220
+H       262.3138    262.4934    260.7975
+L       196.3712    196.9678    194.6294
+U       236.7543    239.4150    234.5308
+LFA     133.4838    133.7498    132.9131
+
+=== Optimization effect analysis ===
+Need more matched A-H variants to estimate factorial effects.
+
+=== New fast-path effects vs H ===
+H->L 1.334x  (-25.02% latency)  full+compile
+H->U 1.109x  (-9.83% latency)  selective+attention_core
+H->LFA 1.964x  (-49.08% latency)  attention_core+flash_attn+compile
+
+=== Precision-boundary search vs H ===
+H->U  1.109x  (-9.83% latency)  selective+attention_core
+
+Full A->H speedup: 2.054x
+Best timed variant: LFA (attention_core+flash_attn+compile), 4.033x vs A
+
+Note: low-precision / approximate / external variants are only valid when the accuracy table says PASS.
+
+CSV written to: a6000_competition_LFA_final.csv
+
+================================================================================================================
+=== competition shape 7 ===
+TransformerConfig(batch_size=64, seq_len=128, d_model=32, num_heads=4, ffn_dim=32, num_layers=4, causal=True)
+estimated explicit-attention score+softmax working set (lower bound)=0.03 GiB
+activation scale: input=0.00 GiB, packed-QKV output=0.00 GiB
+attention-only forward work across layers=0.000 TFLOP (0.000000 PFLOP)
+=== Configuration ===
+device=cuda, dtype=torch.float32, fast_dtype=torch.float16, torch=2.5.1+cu121, sdpa_backend=auto
+gpu=NVIDIA RTX A6000
+cuda_compute_capability=8.6
+padding_ratio=0, mask-skip effective=True
+selected variants=A,H,L,U,LFA
+
+=== Variants ===
+Var  Name                               QKV     Attention          Mask     GELU    Fast dtype   Selective                      Compile 
+----------------------------------------------------------------------------------------------------------------------------------------------
+A    baseline                           sep     manual             no       none    -            none                           no      
+H    full                               packed  sdpa               yes      none    -            none                           no      
+L    full+compile                       packed  sdpa               yes      none    -            none                           yes     
+U    selective+attention_core           packed  sdpa               yes      none    float16      attention_core                 no      
+LFA  attention_core+flash_attn+compile  packed  flash-attn         yes      none    float16      attention_core                 yes     
+
+=== Accuracy ablation ===
+criterion: abs_error <= 0.002 OR relative_error <= 2.00%
+accuracy_profile=stress, patterns=normal,tiny,large,outlier, trials_per_pattern=10
+Var  Name                              Status       Max abs      Max rel         Failed
+----------------------------------------------------------------------------------------------
+A    baseline                          REF                0            0              0
+H    full                              PASS       2.563e-06      13.6667              0
+L    full+compile                      PASS      2.5034e-06      10.3333              0
+U    selective+attention_core          PASS      0.00196043         4557              0
+LFA  attention_core+flash_attn+compile PASS       0.0019604      4557.67              0
+
+=== Performance ablation ===
+all variants use the same fixed benchmark input
+CUDA: torch.cuda.Event timing
+warming up: A, H, L, U, LFA
+timing design: interleaved blocks of <= 5 calls (10 blocks/round)
+round 1/3
+round 2/3
+round 3/3
+
+=== Ablation summary ===
+timing reference=A (baseline)
+Var  Name                               Accuracy    Median ms   Speedup  Latency Δ       Token/s
+-------------------------------------------------------------------------------------------------------
+A    baseline                           REF            2.5948    1.000x     +0.00%    3157063.97
+H    full                               PASS           1.0676    2.430x    -58.86%    7673170.98
+L    full+compile                       PASS           0.6400    4.054x    -75.34%   12800000.29
+U    selective+attention_core           PASS           1.2753    2.035x    -50.85%    6423767.82
+LFA  attention_core+flash_attn+compile  PASS           0.2396   10.829x    -90.77%   34188033.24
+
+Latency distribution:
+Var      Mean ms      P90 ms      Min ms
+--------------------------------------------
+A         2.6559      2.7404      2.5815
+H         1.0911      1.1383      1.0537
+L         0.6769      0.7927      0.6318
+U         1.2969      1.3643      1.2503
+LFA       0.2751      0.3931      0.2376
+
+=== Optimization effect analysis ===
+Need more matched A-H variants to estimate factorial effects.
+
+=== New fast-path effects vs H ===
+H->L 1.668x  (-40.05% latency)  full+compile
+H->U 0.837x  (+19.45% latency)  selective+attention_core
+H->LFA 4.456x  (-77.56% latency)  attention_core+flash_attn+compile
+
+=== Precision-boundary search vs H ===
+H->U  0.837x  (+19.45% latency)  selective+attention_core
+
+Full A->H speedup: 2.430x
+Best timed variant: LFA (attention_core+flash_attn+compile), 10.829x vs A
+
+Note: low-precision / approximate / external variants are only valid when the accuracy table says PASS.
+
+CSV written to: a6000_competition_LFA_final.csv
+
+================================================================================================================
+=== competition shape 8 ===
+TransformerConfig(batch_size=64, seq_len=128, d_model=1024, num_heads=4, ffn_dim=1024, num_layers=4, causal=True)
+estimated explicit-attention score+softmax working set (lower bound)=0.03 GiB
+activation scale: input=0.03 GiB, packed-QKV output=0.09 GiB
+attention-only forward work across layers=0.009 TFLOP (0.000009 PFLOP)
+=== Configuration ===
+device=cuda, dtype=torch.float32, fast_dtype=torch.float16, torch=2.5.1+cu121, sdpa_backend=auto
+gpu=NVIDIA RTX A6000
+cuda_compute_capability=8.6
+padding_ratio=0, mask-skip effective=True
+selected variants=A,H,L,U,LFA
+
+=== Variants ===
+Var  Name                               QKV     Attention          Mask     GELU    Fast dtype   Selective                      Compile 
+----------------------------------------------------------------------------------------------------------------------------------------------
+A    baseline                           sep     manual             no       none    -            none                           no      
+H    full                               packed  sdpa               yes      none    -            none                           no      
+L    full+compile                       packed  sdpa               yes      none    -            none                           yes     
+U    selective+attention_core           packed  sdpa               yes      none    float16      attention_core                 no      
+LFA  attention_core+flash_attn+compile  packed  flash-attn         yes      none    float16      attention_core                 yes     
+
+=== Accuracy ablation ===
+criterion: abs_error <= 0.002 OR relative_error <= 2.00%
+accuracy_profile=stress, patterns=normal,tiny,large,outlier, trials_per_pattern=10
+Var  Name                              Status       Max abs      Max rel         Failed
+----------------------------------------------------------------------------------------------
+A    baseline                          REF                0            0              0
+H    full                              PASS     6.63102e-06        18.75              0
+L    full+compile                      PASS      6.4373e-06      17.7869              0
+U    selective+attention_core          PASS      0.00197816      13821.4              0
+LFA  attention_core+flash_attn+compile PASS      0.00205916      10815.9              0
+
+=== Performance ablation ===
+all variants use the same fixed benchmark input
+CUDA: torch.cuda.Event timing
+warming up: A, H, L, U, LFA
+timing design: interleaved blocks of <= 5 calls (10 blocks/round)
+round 1/3
+round 2/3
+round 3/3
+
+=== Ablation summary ===
+timing reference=A (baseline)
+Var  Name                               Accuracy    Median ms   Speedup  Latency Δ       Token/s
+-------------------------------------------------------------------------------------------------------
+A    baseline                           REF           31.1680    1.000x     +0.00%     262833.67
+H    full                               PASS          26.5334    1.175x    -14.87%     308743.23
+L    full+compile                       PASS          25.9871    1.199x    -16.62%     315233.67
+U    selective+attention_core           PASS          26.8421    1.161x    -13.88%     305192.08
+LFA  attention_core+flash_attn+compile  PASS          25.7526    1.210x    -17.37%     318104.10
+
+Latency distribution:
+Var      Mean ms      P90 ms      Min ms
+--------------------------------------------
+A        31.3150     32.0573     30.7917
+H        26.4967     26.7878     25.5836
+L        25.9710     26.2401     25.5017
+U        26.8208     27.0877     26.3731
+LFA      25.8583     26.2386     25.3870
+
+=== Optimization effect analysis ===
+Need more matched A-H variants to estimate factorial effects.
+
+=== New fast-path effects vs H ===
+H->L 1.021x  (-2.06% latency)  full+compile
+H->U 0.988x  (+1.16% latency)  selective+attention_core
+H->LFA 1.030x  (-2.94% latency)  attention_core+flash_attn+compile
+
+=== Precision-boundary search vs H ===
+H->U  0.988x  (+1.16% latency)  selective+attention_core
+
+Full A->H speedup: 1.175x
+Best timed variant: LFA (attention_core+flash_attn+compile), 1.210x vs A
+
+Note: low-precision / approximate / external variants are only valid when the accuracy table says PASS.
+
+CSV written to: a6000_competition_LFA_final.csv
+
+================================================================================================================
+=== competition shape 9 ===
+TransformerConfig(batch_size=64, seq_len=128, d_model=128, num_heads=1, ffn_dim=128, num_layers=4, causal=True)
+estimated explicit-attention score+softmax working set (lower bound)=0.01 GiB
+activation scale: input=0.00 GiB, packed-QKV output=0.01 GiB
+attention-only forward work across layers=0.001 TFLOP (0.000001 PFLOP)
+=== Configuration ===
+device=cuda, dtype=torch.float32, fast_dtype=torch.float16, torch=2.5.1+cu121, sdpa_backend=auto
+gpu=NVIDIA RTX A6000
+cuda_compute_capability=8.6
+padding_ratio=0, mask-skip effective=True
+selected variants=A,H,L,U,LFA
+
+=== Variants ===
+Var  Name                               QKV     Attention          Mask     GELU    Fast dtype   Selective                      Compile 
+----------------------------------------------------------------------------------------------------------------------------------------------
+A    baseline                           sep     manual             no       none    -            none                           no      
+H    full                               packed  sdpa               yes      none    -            none                           no      
+L    full+compile                       packed  sdpa               yes      none    -            none                           yes     
+U    selective+attention_core           packed  sdpa               yes      none    float16      attention_core                 no      
+LFA  attention_core+flash_attn+compile  packed  flash-attn         yes      none    float16      attention_core                 yes     
+
+=== Accuracy ablation ===
+criterion: abs_error <= 0.002 OR relative_error <= 2.00%
+accuracy_profile=stress, patterns=normal,tiny,large,outlier, trials_per_pattern=10
+Var  Name                              Status       Max abs      Max rel         Failed
+----------------------------------------------------------------------------------------------
+A    baseline                          REF                0            0              0
+H    full                              PASS     3.69549e-06      9.80953              0
+L    full+compile                      PASS     3.69549e-06      13.5522              0
+U    selective+attention_core          PASS      0.00184679      5079.33              0
+LFA  attention_core+flash_attn+compile PASS      0.00184679      6042.15              0
+
+=== Performance ablation ===
+all variants use the same fixed benchmark input
+CUDA: torch.cuda.Event timing
+warming up: A, H, L, U, LFA
+timing design: interleaved blocks of <= 5 calls (10 blocks/round)
+round 1/3
+round 2/3
+round 3/3
+
+=== Ablation summary ===
+timing reference=A (baseline)
+Var  Name                               Accuracy    Median ms   Speedup  Latency Δ       Token/s
+-------------------------------------------------------------------------------------------------------
+A    baseline                           REF            2.3219    1.000x     +0.00%    3528114.61
+H    full                               PASS           1.6394    1.416x    -29.39%    4996877.05
+L    full+compile                       PASS           1.0926    2.125x    -52.94%    7497657.15
+U    selective+attention_core           PASS           1.7224    1.348x    -25.82%    4756242.56
+LFA  attention_core+flash_attn+compile  PASS           0.9114    2.548x    -60.75%    8988763.79
+
+Latency distribution:
+Var      Mean ms      P90 ms      Min ms
+--------------------------------------------
+A         2.3875      2.6141      2.2743
+H         1.6598      1.7135      1.6210
+L         1.1535      1.4142      1.0813
+U         1.7529      1.8452      1.7060
+LFA       0.9697      1.1937      0.9032
+
+=== Optimization effect analysis ===
+Need more matched A-H variants to estimate factorial effects.
+
+=== New fast-path effects vs H ===
+H->L 1.500x  (-33.35% latency)  full+compile
+H->U 0.952x  (+5.06% latency)  selective+attention_core
+H->LFA 1.799x  (-44.41% latency)  attention_core+flash_attn+compile
+
+=== Precision-boundary search vs H ===
+H->U  0.952x  (+5.06% latency)  selective+attention_core
+
+Full A->H speedup: 1.416x
+Best timed variant: LFA (attention_core+flash_attn+compile), 2.548x vs A
+
+Note: low-precision / approximate / external variants are only valid when the accuracy table says PASS.
+
+CSV written to: a6000_competition_LFA_final.csv
+
+================================================================================================================
+=== competition shape 10 ===
+TransformerConfig(batch_size=64, seq_len=128, d_model=128, num_heads=2, ffn_dim=128, num_layers=4, causal=True)
+estimated explicit-attention score+softmax working set (lower bound)=0.02 GiB
+activation scale: input=0.00 GiB, packed-QKV output=0.01 GiB
+attention-only forward work across layers=0.001 TFLOP (0.000001 PFLOP)
+=== Configuration ===
+device=cuda, dtype=torch.float32, fast_dtype=torch.float16, torch=2.5.1+cu121, sdpa_backend=auto
+gpu=NVIDIA RTX A6000
+cuda_compute_capability=8.6
+padding_ratio=0, mask-skip effective=True
+selected variants=A,H,L,U,LFA
+
+=== Variants ===
+Var  Name                               QKV     Attention          Mask     GELU    Fast dtype   Selective                      Compile 
+----------------------------------------------------------------------------------------------------------------------------------------------
+A    baseline                           sep     manual             no       none    -            none                           no      
+H    full                               packed  sdpa               yes      none    -            none                           no      
+L    full+compile                       packed  sdpa               yes      none    -            none                           yes     
+U    selective+attention_core           packed  sdpa               yes      none    float16      attention_core                 no      
+LFA  attention_core+flash_attn+compile  packed  flash-attn         yes      none    float16      attention_core                 yes     
+
+=== Accuracy ablation ===
+criterion: abs_error <= 0.002 OR relative_error <= 2.00%
+accuracy_profile=stress, patterns=normal,tiny,large,outlier, trials_per_pattern=10
+Var  Name                              Status       Max abs      Max rel         Failed
+----------------------------------------------------------------------------------------------
+A    baseline                          REF                0            0              0
+H    full                              PASS     3.21865e-06      6.53334              0
+L    full+compile                      PASS     3.69549e-06      4.43333              0
+U    selective+attention_core          PASS       0.0019151      754.338              0
+LFA  attention_core+flash_attn+compile PASS      0.00195795      755.754              0
+
+=== Performance ablation ===
+all variants use the same fixed benchmark input
+CUDA: torch.cuda.Event timing
+warming up: A, H, L, U, LFA
+timing design: interleaved blocks of <= 5 calls (10 blocks/round)
+round 1/3
+round 2/3
+round 3/3
+
+=== Ablation summary ===
+timing reference=A (baseline)
+Var  Name                               Accuracy    Median ms   Speedup  Latency Δ       Token/s
+-------------------------------------------------------------------------------------------------------
+A    baseline                           REF            3.0044    1.000x     +0.00%    2726653.04
+H    full                               PASS           1.8048    1.665x    -39.93%    4539007.01
+L    full+compile                       PASS           1.2611    2.382x    -58.03%    6496143.19
+U    selective+attention_core           PASS           1.7152    1.752x    -42.91%    4776119.55
+LFA  attention_core+flash_attn+compile  PASS           0.9175    3.275x    -69.46%    8928571.31
+
+Latency distribution:
+Var      Mean ms      P90 ms      Min ms
+--------------------------------------------
+A         3.0428      3.0917      2.9798
+H         1.8304      1.8699      1.7869
+L         1.3006      1.4358      1.2462
+U         1.7421      1.7932      1.7009
+LFA       0.9549      1.0865      0.9083
+
+=== Optimization effect analysis ===
+Need more matched A-H variants to estimate factorial effects.
+
+=== New fast-path effects vs H ===
+H->L 1.431x  (-30.13% latency)  full+compile
+H->U 1.052x  (-4.96% latency)  selective+attention_core
+H->LFA 1.967x  (-49.16% latency)  attention_core+flash_attn+compile
+
+=== Precision-boundary search vs H ===
+H->U  1.052x  (-4.96% latency)  selective+attention_core
+
+Full A->H speedup: 1.665x
+Best timed variant: LFA (attention_core+flash_attn+compile), 3.275x vs A
+
+Note: low-precision / approximate / external variants are only valid when the accuracy table says PASS.
+
+CSV written to: a6000_competition_LFA_final.csv
+
+================================================================================================================
+=== competition shape 11 ===
+TransformerConfig(batch_size=64, seq_len=128, d_model=128, num_heads=16, ffn_dim=128, num_layers=4, causal=True)
+estimated explicit-attention score+softmax working set (lower bound)=0.12 GiB
+activation scale: input=0.00 GiB, packed-QKV output=0.01 GiB
+attention-only forward work across layers=0.001 TFLOP (0.000001 PFLOP)
+=== Configuration ===
+device=cuda, dtype=torch.float32, fast_dtype=torch.float16, torch=2.5.1+cu121, sdpa_backend=auto
+gpu=NVIDIA RTX A6000
+cuda_compute_capability=8.6
+padding_ratio=0, mask-skip effective=True
+selected variants=A,H,L,U,LFA
+
+=== Variants ===
+Var  Name                               QKV     Attention          Mask     GELU    Fast dtype   Selective                      Compile 
+----------------------------------------------------------------------------------------------------------------------------------------------
+A    baseline                           sep     manual             no       none    -            none                           no      
+H    full                               packed  sdpa               yes      none    -            none                           no      
+L    full+compile                       packed  sdpa               yes      none    -            none                           yes     
+U    selective+attention_core           packed  sdpa               yes      none    float16      attention_core                 no      
+LFA  attention_core+flash_attn+compile  packed  flash-attn         yes      none    float16      attention_core                 yes     
+
+=== Accuracy ablation ===
+criterion: abs_error <= 0.002 OR relative_error <= 2.00%
+accuracy_profile=stress, patterns=normal,tiny,large,outlier, trials_per_pattern=10
+Var  Name                              Status       Max abs      Max rel         Failed
+----------------------------------------------------------------------------------------------
+A    baseline                          REF                0            0              0
+H    full                              PASS      3.8147e-06      33.7692              0
+L    full+compile                      PASS     3.93391e-06      33.7692              0
+U    selective+attention_core          PASS      0.00204909      5670.84              0
+LFA  attention_core+flash_attn+compile PASS      0.00219488      1947.75              0
+
+=== Performance ablation ===
+all variants use the same fixed benchmark input
+CUDA: torch.cuda.Event timing
+warming up: A, H, L, U, LFA
+timing design: interleaved blocks of <= 5 calls (10 blocks/round)
+round 1/3
+round 2/3
+round 3/3
+
+=== Ablation summary ===
+timing reference=A (baseline)
+Var  Name                               Accuracy    Median ms   Speedup  Latency Δ       Token/s
+-------------------------------------------------------------------------------------------------------
+A    baseline                           REF            8.1265    1.000x     +0.00%    1008064.53
+H    full                               PASS           2.6650    3.049x    -67.21%    3073967.31
+L    full+compile                       PASS           2.1274    3.820x    -73.82%    3850782.21
+U    selective+attention_core           PASS           1.8196    4.466x    -77.61%    4501969.54
+LFA  attention_core+flash_attn+compile  PASS           1.0199    7.968x    -87.45%    8032128.38
+
+Latency distribution:
+Var      Mean ms      P90 ms      Min ms
+--------------------------------------------
+A         8.1904      8.4419      8.1080
+H         2.7322      2.9983      2.6481
+L         2.2232      2.5941      2.1146
+U         1.8868      2.1824      1.8012
+LFA       1.1119      1.4653      1.0107
+
+=== Optimization effect analysis ===
+Need more matched A-H variants to estimate factorial effects.
+
+=== New fast-path effects vs H ===
+H->L 1.253x  (-20.17% latency)  full+compile
+H->U 1.465x  (-31.72% latency)  selective+attention_core
+H->LFA 2.613x  (-61.73% latency)  attention_core+flash_attn+compile
+
+=== Precision-boundary search vs H ===
+H->U  1.465x  (-31.72% latency)  selective+attention_core
+
+Full A->H speedup: 3.049x
+Best timed variant: LFA (attention_core+flash_attn+compile), 7.968x vs A
+
+Note: low-precision / approximate / external variants are only valid when the accuracy table says PASS.
+
+CSV written to: a6000_competition_LFA_final.csv
+
+================================================================================================================
+=== competition shape 12 ===
+TransformerConfig(batch_size=64, seq_len=32, d_model=128, num_heads=4, ffn_dim=128, num_layers=4, causal=True)
+estimated explicit-attention score+softmax working set (lower bound)=0.00 GiB
+activation scale: input=0.00 GiB, packed-QKV output=0.00 GiB
+attention-only forward work across layers=0.000 TFLOP (0.000000 PFLOP)
+=== Configuration ===
+device=cuda, dtype=torch.float32, fast_dtype=torch.float16, torch=2.5.1+cu121, sdpa_backend=auto
+gpu=NVIDIA RTX A6000
+cuda_compute_capability=8.6
+padding_ratio=0, mask-skip effective=True
+selected variants=A,H,L,U,LFA
+
+=== Variants ===
+Var  Name                               QKV     Attention          Mask     GELU    Fast dtype   Selective                      Compile 
+----------------------------------------------------------------------------------------------------------------------------------------------
+A    baseline                           sep     manual             no       none    -            none                           no      
+H    full                               packed  sdpa               yes      none    -            none                           no      
+L    full+compile                       packed  sdpa               yes      none    -            none                           yes     
+U    selective+attention_core           packed  sdpa               yes      none    float16      attention_core                 no      
+LFA  attention_core+flash_attn+compile  packed  flash-attn         yes      none    float16      attention_core                 yes     
+
+=== Accuracy ablation ===
+criterion: abs_error <= 0.002 OR relative_error <= 2.00%
+accuracy_profile=stress, patterns=normal,tiny,large,outlier, trials_per_pattern=10
+Var  Name                              Status       Max abs      Max rel         Failed
+----------------------------------------------------------------------------------------------
+A    baseline                          REF                0            0              0
+H    full                              PASS     2.74181e-06        5.375              0
+L    full+compile                      PASS     2.92063e-06        5.375              0
+U    selective+attention_core          PASS      0.00249046      1415.51              0
+LFA  attention_core+flash_attn+compile PASS      0.00198928      1445.51              0
+
+=== Performance ablation ===
+all variants use the same fixed benchmark input
+CUDA: torch.cuda.Event timing
+warming up: A, H, L, U, LFA
+timing design: interleaved blocks of <= 5 calls (10 blocks/round)
+round 1/3
+round 2/3
+round 3/3
+
+=== Ablation summary ===
+timing reference=A (baseline)
+Var  Name                               Accuracy    Median ms   Speedup  Latency Δ       Token/s
+-------------------------------------------------------------------------------------------------------
+A    baseline                           REF            2.5590    1.000x     +0.00%     800320.15
+H    full                               PASS           1.0368    2.468x    -59.48%    1975217.18
+L    full+compile                       PASS           0.4495    5.692x    -82.43%    4555808.70
+U    selective+attention_core           PASS           1.2728    2.010x    -50.26%    1609010.41
+LFA  attention_core+flash_attn+compile  PASS           0.3333    7.677x    -86.97%    6144393.15
+
+Latency distribution:
+Var      Mean ms      P90 ms      Min ms
+--------------------------------------------
+A         2.5967      2.6596      2.5324
+H         1.0550      1.1111      1.0148
+L         0.4844      0.6025      0.4454
+U         1.2939      1.3651      1.2554
+LFA       0.3681      0.4851      0.3308
+
+=== Optimization effect analysis ===
+Need more matched A-H variants to estimate factorial effects.
+
+=== New fast-path effects vs H ===
+H->L 2.306x  (-56.64% latency)  full+compile
+H->U 0.815x  (+22.76% latency)  selective+attention_core
+H->LFA 3.111x  (-67.85% latency)  attention_core+flash_attn+compile
+
+=== Precision-boundary search vs H ===
+H->U  0.815x  (+22.76% latency)  selective+attention_core
+
+Full A->H speedup: 2.468x
+Best timed variant: LFA (attention_core+flash_attn+compile), 7.677x vs A
+
+Note: low-precision / approximate / external variants are only valid when the accuracy table says PASS.
+
+CSV written to: a6000_competition_LFA_final.csv
+
+================================================================================================================
+=== competition shape 13 ===
+TransformerConfig(batch_size=64, seq_len=1024, d_model=128, num_heads=4, ffn_dim=128, num_layers=4, causal=True)
+estimated explicit-attention score+softmax working set (lower bound)=2.00 GiB
+activation scale: input=0.03 GiB, packed-QKV output=0.09 GiB
+attention-only forward work across layers=0.069 TFLOP (0.000069 PFLOP)
+=== Configuration ===
+device=cuda, dtype=torch.float32, fast_dtype=torch.float16, torch=2.5.1+cu121, sdpa_backend=auto
+gpu=NVIDIA RTX A6000
+cuda_compute_capability=8.6
+padding_ratio=0, mask-skip effective=True
+selected variants=A,H,L,U,LFA
+
+=== Variants ===
+Var  Name                               QKV     Attention          Mask     GELU    Fast dtype   Selective                      Compile 
+----------------------------------------------------------------------------------------------------------------------------------------------
+A    baseline                           sep     manual             no       none    -            none                           no      
+H    full                               packed  sdpa               yes      none    -            none                           no      
+L    full+compile                       packed  sdpa               yes      none    -            none                           yes     
+U    selective+attention_core           packed  sdpa               yes      none    float16      attention_core                 no      
+LFA  attention_core+flash_attn+compile  packed  flash-attn         yes      none    float16      attention_core                 yes     
+
+=== Accuracy ablation ===
+criterion: abs_error <= 0.002 OR relative_error <= 2.00%
+accuracy_profile=stress, patterns=normal,tiny,large,outlier, trials_per_pattern=10
+Var  Name                              Status       Max abs      Max rel         Failed
+----------------------------------------------------------------------------------------------
+A    baseline                          REF                0            0              0
+H    full                              PASS     4.11272e-06      93020.2              0
+L    full+compile                      PASS     4.08292e-06      14591.4              0
+U    selective+attention_core          PASS      0.00187588  1.53338e+07              0
+LFA  attention_core+flash_attn+compile PASS      0.00187612  1.38072e+07              0
+
+=== Performance ablation ===
+all variants use the same fixed benchmark input
+CUDA: torch.cuda.Event timing
+warming up: A, H, L, U, LFA
+timing design: interleaved blocks of <= 5 calls (10 blocks/round)
+round 1/3
+round 2/3
+round 3/3
+
+=== Ablation summary ===
+timing reference=A (baseline)
+Var  Name                               Accuracy    Median ms   Speedup  Latency Δ       Token/s
+-------------------------------------------------------------------------------------------------------
+A    baseline                           REF          110.2843    1.000x     +0.00%     594246.04
+H    full                               PASS          26.9594    4.091x    -75.55%    2430918.23
+L    full+compile                       PASS          23.2489    4.744x    -78.92%    2818886.58
+U    selective+attention_core           PASS          13.7236    8.036x    -87.56%    4775406.63
+LFA  attention_core+flash_attn+compile  PASS           7.6836   14.353x    -93.03%    8529353.00
+
+Latency distribution:
+Var      Mean ms      P90 ms      Min ms
+--------------------------------------------
+A       110.3736    110.7839    110.0083
+H        26.9909     27.1462     26.7090
+L        23.2973     23.6032     23.0492
+U        13.8414     14.4087     13.4472
+LFA       7.7587      8.1206      7.5858
+
+=== Optimization effect analysis ===
+Need more matched A-H variants to estimate factorial effects.
+
+=== New fast-path effects vs H ===
+H->L 1.160x  (-13.76% latency)  full+compile
+H->U 1.964x  (-49.10% latency)  selective+attention_core
+H->LFA 3.509x  (-71.50% latency)  attention_core+flash_attn+compile
+
+=== Precision-boundary search vs H ===
+H->U  1.964x  (-49.10% latency)  selective+attention_core
+
+Full A->H speedup: 4.091x
+Best timed variant: LFA (attention_core+flash_attn+compile), 14.353x vs A
+
+Note: low-precision / approximate / external variants are only valid when the accuracy table says PASS.
+
+CSV written to: a6000_competition_LFA_final.csv
+
+=== Competition sweep summary ===
+Shape       B        S      D    H   Ref   Best  Best speedup   H speedup
+-----------------------------------------------------------------------------------
+    1      64      128    128    4     A    LFA        4.147x      1.990x
+    2       1      128    128    4     A    LFA       14.278x      2.521x
+    3       4      128    128    4     A    LFA       13.605x      2.514x
+    4      16      128    128    4     A    LFA        8.188x      2.476x
+    5     128      128    128    4     A    LFA        4.059x      2.061x
+    6   10000      128    128    4     A      L        2.739x      2.054x
+    7      64      128     32    4     A    LFA       10.829x      2.430x
+    8      64      128   1024    4     A    LFA        1.210x      1.175x
+    9      64      128    128    1     A    LFA        2.548x      1.416x
+   10      64      128    128    2     A    LFA        3.275x      1.665x
+   11      64      128    128   16     A    LFA        7.968x      3.049x
+   12      64       32    128    4     A    LFA        7.677x      2.468x
+   13      64     1024    128    4     A    LFA       14.353x      4.091x

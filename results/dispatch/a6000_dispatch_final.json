@@ -1,0 +1,80 @@
+{
+  "1": {
+    "variant": "LFA",
+    "name": "attention_core+flash_attn+compile",
+    "median_ms": 0.9195520281791687,
+    "speedup_vs_A": 4.146993136876218
+  },
+  "2": {
+    "variant": "LFA",
+    "name": "attention_core+flash_attn+compile",
+    "median_ms": 0.18227200210094452,
+    "speedup_vs_A": 14.278265153387403
+  },
+  "3": {
+    "variant": "LFA",
+    "name": "attention_core+flash_attn+compile",
+    "median_ms": 0.18943999707698822,
+    "speedup_vs_A": 13.605321061270407
+  },
+  "4": {
+    "variant": "LFA",
+    "name": "attention_core+flash_attn+compile",
+    "median_ms": 0.3102720081806183,
+    "speedup_vs_A": 8.18837650673552
+  },
+  "5": {
+    "variant": "LFA",
+    "name": "attention_core+flash_attn+compile",
+    "median_ms": 1.8534400463104248,
+    "speedup_vs_A": 4.058770697968366
+  },
+  "6": {
+    "variant": "L",
+    "name": "full+compile",
+    "median_ms": 196.5629425048828,
+    "speedup_vs_A": 2.738880273474146
+  },
+  "7": {
+    "variant": "LFA",
+    "name": "attention_core+flash_attn+compile",
+    "median_ms": 0.2396160066127777,
+    "speedup_vs_A": 10.829059402781953
+  },
+  "8": {
+    "variant": "LFA",
+    "name": "attention_core+flash_attn+compile",
+    "median_ms": 25.752575874328613,
+    "speedup_vs_A": 1.210286705817346
+  },
+  "9": {
+    "variant": "LFA",
+    "name": "attention_core+flash_attn+compile",
+    "median_ms": 0.9113600254058838,
+    "speedup_vs_A": 2.5477527788598153
+  },
+  "10": {
+    "variant": "LFA",
+    "name": "attention_core+flash_attn+compile",
+    "median_ms": 0.9175040125846863,
+    "speedup_vs_A": 3.2745535144401448
+  },
+  "11": {
+    "variant": "LFA",
+    "name": "attention_core+flash_attn+compile",
+    "median_ms": 1.0199040174484253,
+    "speedup_vs_A": 7.967871241851074
+  },
+  "12": {
+    "variant": "LFA",
+    "name": "attention_core+flash_attn+compile",
+    "median_ms": 0.3333120048046112,
+    "speedup_vs_A": 7.677419049105001
+  },
+  "13": {
+    "variant": "LFA",
+    "name": "attention_core+flash_attn+compile",
+    "median_ms": 7.683583974838257,
+    "speedup_vs_A": 14.353235008581393
+  }
+}
