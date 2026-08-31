@@ -233,6 +233,8 @@ Moving from one universal implementation to: `known Transformer configuration �
 
 **DIRECT SOURCE.** The best-supported citation for our shape-conditioned dispatcher.
 
+> Concrete implementation: `src/optimized_transformer.py::choose_execution_plan`, `_EXACT_DISPATCH`. See `TECH_REPORT.md` §9.
+
 ---
 
 ## 12. Correctness-gated promotion of shape routes
@@ -266,6 +268,8 @@ For shape 6 (batch=10,000, 4 layers), we brute-forced all `2^4 = 16` per-layer p
 ### Attribution strength
 
 **OUR SYNTHESIS — NOT A DIRECT PAPER CONTRIBUTION.** Report wording: *"Inspired by workload-grounded route dispatch in Harness Engineering and selective preservation of accuracy-sensitive computation in SageAttention3, we introduce a per-layer precision/backend search. The exact per-layer FP32-SDPA/FP16-FA2(/FP16-projection) bitmask search, and the finding that FP16 layer position determines safety, are our contribution."*
+
+> The "FP16 layers later = safer" finding is also what the unseen-shape generalization rule in `src/optimized_transformer.py::_classify_regime` is built on (put the first ~25% of layers at FP32, later layers at FP16) — see `TECH_REPORT.md` §9.1 for why that specific ratio was chosen.
 
 ---
 

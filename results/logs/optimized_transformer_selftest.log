@@ -1,0 +1,11 @@
+=== optimized_transformer.py self-test (default normal-input, 1 trial each) ===
+device=cuda, flash_attn_available=True
+
+[PASS] exact-match shape 1: plan=shape1:LLVV  max_abs_err=0.000790507  failed=0/1048576
+[PASS] exact-match shape 8: plan=shape8:PVPV  max_abs_err=0.00102389  failed=0/8388608
+[PASS] unseen shape (typical regime): plan=regime:typical(elements=2,097,152)  max_abs_err=0.000635505  failed=0/2097152
+[PASS] unseen shape (large-scale regime): plan=regime:large_scale(elements=163,840,000,fp32_layers=2)  max_abs_err=0.000692964  failed=0/163840000
+
+=== extended stress validation: shape 6 exact-match + adversarial unseen large-scale synthetic ===
+[PASS] shape 6 (exact-match, known trickiest): plan=shape6:PLLV  max_abs=0.00192773  failed=0/3276800000
+[PASS] unseen large-scale synthetic (163.84M elements, matching shape 6's scale): plan=regime:large_scale(elements=163,840,000,fp32_layers=2)  max_abs=0.00136703  failed=0/3276800000

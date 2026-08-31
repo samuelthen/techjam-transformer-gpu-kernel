@@ -136,9 +136,9 @@ Two important negative results are recorded, not hidden, because they materially
 | 11 | 64, 128, 128, 16 | 3.00x PASS | 3.76x PASS | 7.96x PASS |
 | 12 | 64, 32, 128, 4 | 2.43x PASS | 5.43x PASS | 7.37x PASS |
 | 13 | 64, 1024, 128, 4 | 3.95x PASS | 4.56x PASS | 14.34x PASS |
-| 14 | 32, 100000, 1024, 16 | infeasible at full length* | infeasible (compile too slow to be worth it at this scale) | **FAIL** (33,910/9.83B elements) |
+| 14 | 32, 100000, 1024, 16 | runs via microbatching (chunk=8 of 32); ~59.8s/chunk uncompiled; PASS at S=512 prefix, trusted (no FP16 anywhere) at full length* | not attempted — compile cost prohibitive at this scale, see §8 | **FAIL** vs `H` at full length (33,910/9.83B elements); PASS at S=512 prefix |
 
-\*"Infeasible" for `A` (exact manual attention) — its own `S×S` score matrix needs 4.77 TB regardless of batch/chunk size. `H` and `L` *can* run (via SDPA, which never materializes the full score matrix) but require batch-microbatching (chunk=8 of 32) to fit in 48 GB; see §4.8.
+\*The exact `A` (manual attention) reference is a different story: it is mathematically infeasible at this length **regardless of batch size**, since its own `S×S` score matrix alone needs 4.77 TB even at a chunk of 1. `H` has no such limit — it runs via SDPA (which never materializes the full score matrix) plus batch-microbatching (chunk=8 of 32) to keep total activations under 48 GB; see §4.8. `L` (`H` + `torch.compile`) was never run at this shape at all — not because it's infeasible, but because compiling a graph this large was judged not worth the time given `H` alone already takes ~60s/forward-pass to warm up.
 
 ### 6.2 Final per-shape dispatch (after per-layer hybrid search)
 
@@ -174,9 +174,57 @@ Raw CSVs and logs backing every number above are in `results/csv/` and `results/
 
 ## 8. Limitations and future work
 
-- Shape 6's 3-way (VFA-inclusive) per-layer search is not yet complete (§6.2 callout).
 - The per-layer search space explored is still a fixed menu (none/LFA-level/VFA-level) rather than a fully independent per-layer choice of QKV precision, out-proj precision, and attention backend — a larger, more expensive search could plausibly find further gains, especially on shapes 7 and 11 where no improvement was found within the current menu.
 - No custom CUDA/Triton kernels were written; all gains come from PyTorch-level operator choice (SDPA vs. FlashAttention-2), precision boundaries, layout (packed QKV), and `torch.compile`. §17–18 of `ATTRIBUTION.md` outline concrete next steps (LayerNorm+QKV fusion, FFN fusion, persistent/whole-model kernels, tile/warp/pipeline tuning) that were identified but not implemented in the time available.
 - Shape 14's dispatch entry (`LP`, uncompiled) has not been benchmarked with `torch.compile`, given the extreme per-forward cost at that shape (~60s/forward for `H` alone) made compiling multiple candidates impractical within the available time; a compiled `LP` would very likely be faster still.
 - The 14-shape table in this repo should be cross-checked against the official Feishu appendix before final submission, per the problem statement's own note that content may have diverged.
 - Everything here targets a single GPU model (A6000, Ampere). The attribution document (§19–20) is explicit about which paper-derived directions (Hopper FA3 scheduling, Blackwell FP4 attention) do **not** transfer to this hardware and would need separate validation on different GPUs.
+- The regime classifier for unseen shapes (§9) is validated against one deliberately adversarial synthetic shape, not an exhaustive fuzz sweep of the unseen-shape space.
+
+## 9. The submission: `UserOptimizedTransformer` (`src/optimized_transformer.py`)
+
+Everything above (§1–8) is the research process. This section documents the artifact that process produced: a single `BaselineTransformer` subclass, structurally identical to the reference (same parameter names, so `optimized.load_state_dict(baseline.state_dict())` needs no customization), whose `forward()` dynamically dispatches to the fastest validated execution plan for whatever shape it's given — including shapes never seen during this project.
+
+### 9.1 Dispatch logic
+
+```
+input config (batch_size, seq_len, d_model, num_heads, num_layers, causal, ffn_dim)
+        │
+        ▼
+exact match against the 14 disclosed shapes?
+  │ yes ──────────────► use the brute-force-searched per-layer plan from §6.2
+  │ no
+  ▼
+classify by total activation size (batch_size * seq_len * d_model):
+  │ ≤ 20,000,000 ("typical")       ──► full LFA: every layer FP16 FlashAttention-2
+  │                                     core, FP32 everywhere else
+  │ > 20,000,000 ("large-scale")   ──► conservative hybrid: first ~25% of layers
+                                        FP32 SDPA, remaining layers FP16
+                                        FlashAttention-2 core
+        │
+        ▼
+at forward() time: non-trivial padding mask, no CUDA, or flash-attn not
+installed?  ──► transparently fall back to plain FP32 SDPA (mathematically
+                the same design as `H`/`L`; always correct, never crashes)
+```
+
+The 20,000,000-element threshold is a conservative decade below shape 6's actual failure point (163,840,000 elements) — the smallest scale at which `LFA` is known to fail — leaving margin for shapes that fall between the validated envelope and shape 6's extreme.
+
+The "~25% of layers stay FP32" ratio for the large-scale regime is not an arbitrary guess: applying `max(1, round(num_layers * 0.25))` to shape 6 (4 layers) yields exactly 1 FP32 layer, matching the independently brute-force-searched winner (`PLLV`'s FP32 layer is layer 1 of 4); applying it to shape 14 (2 layers) also yields exactly 1 FP32 layer, matching *its* independently brute-force-searched winner (`LP`). Two for two on the only shapes known to need conservatism is the best evidence available, short of a full search on every possible unseen shape, that the ratio generalizes reasonably.
+
+### 9.2 Validation performed
+
+Beyond the per-shape validation already covered in §6, the dispatcher itself was exercised end-to-end (weight-copy from a real `BaselineTransformer`, forward pass, per-element accuracy check) on:
+
+- Two exact-match shapes (1 and 8) — single-trial normal-input sanity check, both PASS.
+- One synthetic "typical regime" shape never in the dispatch table (batch=32, seq=256, d=256, heads=8, layers=6) — PASS.
+- One synthetic **"large-scale regime"** shape, deliberately sized to match shape 6's exact element count (163,840,000, via batch=5000/layers=6 instead of shape 6's batch=10000/layers=4) specifically to stress-test the generalization rule at the same scale that broke `LFA` — put through the full 20-trial stress profile (5 each of normal/tiny/large/outlier), **PASS with zero failed elements** (`plan=regime:large_scale(elements=163,840,000,fp32_layers=2)`).
+- Shape 6 itself, run back through the dispatcher's exact-match path under the same 20-trial stress profile as a regression check — PASS (`plan=shape6:PLLV`), matching the standalone search result in §4.10.
+
+This is real evidence the generalization rule works at least in the one adversarial case tested, not a demonstration limited to happy-path shapes — but it is not an exhaustive sweep of the unseen-shape space (§8).
+
+### 9.3 Safety properties
+
+- **Never crashes on an untested configuration.** No CUDA, no `flash-attn`, or a non-trivial padding mask (the flash-attn path here only supports the fully-valid mask that matches every one of the 14 disclosed shapes) all route to the plain FP32 SDPA fallback rather than raising or silently miscomputing.
+- **TF32 is disabled unconditionally on import** (`torch.backends.cuda.matmul.allow_tf32 = False`), closing the correctness gap root-caused in §4.2 regardless of which execution plan ends up chosen.
+- **`torch.compile` failures degrade gracefully.** If compilation raises for any reason, the uncompiled (still-correct) module is used instead of propagating the exception — correctness is prioritized over the speed `torch.compile` would have added.
