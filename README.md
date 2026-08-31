@@ -172,7 +172,3 @@ Built interactively with Claude (Claude Code): reading and extending the provide
 - Shape 14's dispatch entry has not been benchmarked with `torch.compile` (each uncompiled forward pass there already takes ~60 seconds, making multi-candidate compilation impractical in the time available). It also can't be validated through the unmodified official script at all, since the official `BaselineTransformer` itself can't execute at that shape (§ headline numbers, above) — only our own memory-safe cross-check (`H` vs `LFA`/`LP`) is available there.
 
 Full list, plus every operational lesson learned running this on a shared multi-GPU host, in `TECH_REPORT.md` §7–8.
-
-## Team member contributions
-
-Single-contributor project; see `ATTRIBUTION.md` for the AI-assistance and paper-attribution breakdown in place of a multi-person contribution table.
