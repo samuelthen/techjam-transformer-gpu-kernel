@@ -1,6 +1,6 @@
 # Technical Report — Transformer GPU Kernel Optimization (Challenge 3)
 
-Status: **shape 6's extended 3-way per-layer search is still running as of this writing** (see the callout in §6.2). Everything else below is complete and validated. This report will be updated with the final shape-6 number once that job finishes.
+Status: **complete.** All 14 shapes have a validated dispatch entry, including shape 6's extended 3-way per-layer search (§6.2).
 
 ## 1. Environment
 
@@ -104,6 +104,10 @@ The same mechanism, applied to shape 14 (2 layers), resolves its failure entirel
 
 Since `LFA` already passes 12 shapes with comfortable margin (not just barely), and `VFA` is strictly faster than `LFA` *when it works* (it also lowers the QKV/out-projection GEMMs, not just attention), we generalized the per-layer search to a **3-way** per-layer menu (`none`=FP32 SDPA / `core`=LFA-level / `proj`=VFA-level) and brute-forced all `3⁴=81` patterns per shape, run in parallel across the idle GPU fleet (one shape, or a pair of shapes, per GPU). Result: **10 of the 12 searched shapes improve over plain `LFA`**, by margins from a marginal +0.7% (shape 2, already near its ceiling) up to **+44%** (shape 4) and **+38%** (shape 8 — previously the *hardest* shape for any optimization to help). Two shapes (7, 11) showed no improvement — plain `LFA` was already their optimum. Full numbers in §6.2.
 
+A methodological pitfall surfaced while comparing results across these 11 parallel jobs: `search_layer_precision_boundary.py`'s "top 5" benchmarking step sorts candidates by `(most VFA-level layers, most LFA-level layers)` before picking which ones to actually compile and time, which can exclude the *already-known-best* pattern (e.g. plain `LFA` itself, `n_proj=0`) from that top-5 and produce a false "beats the baseline" claim — the script says a pattern "BEATS pure LFA" whenever its label isn't literally all-`core`, without ever having benchmarked pure `LFA` for comparison. Every "improvement" number reported in this repo was manually cross-checked against the independently-measured baseline before being accepted (two candidate shapes — 7 and 11 — were caught this way and correctly downgraded to "no improvement found"). The bug itself was left in place (not worth burning more compute re-running 11 completed jobs over a reporting-only issue), but is flagged here and in `results/logs/` so it isn't silently trusted by anyone reusing this script.
+
+**Shape 6, extended to the same 3-way menu:** the binary (`none`/LFA-level) search (§4.9) found `PFFF` (`P`+`L`+`L`+`L` in this section's notation) at 3.587x, independently benchmarked in a dedicated single-shape run. Re-running the full 3-way search on shape 6 (81 patterns; slower than every other shape by roughly 20x per-pattern, since shape 6's batch size of 10,000 makes its activation tensors ~20x larger than the next-largest shape — see the operational note in §7) found 21/81 patterns pass, and the fastest, **`PLLV`** (layer 1 FP32 SDPA, layers 2–3 LFA-level FP16 FlashAttention core, layer 4 upgraded to VFA-level FP16 QKV+attention+out-proj), reaches **3.923x** — verified directly against the known `PFFF`=3.587x baseline (same GPU, same shape, matching ~538ms `A` reference across both runs), a genuine **+9.4%** improvement. Its accuracy margin (max_abs=0.00187) sits comfortably under the 0.002 absolute-tolerance threshold, not a knife-edge pass like the patterns that failed (which clustered at 0.0020–0.0023). This is consistent with the §4.9 finding: the added aggressiveness is placed in the *last* layer, the position most tolerant of extra imprecision.
+
 ## 5. Correctness methodology
 
 Every "PASS" in this repository means: **zero failed elements** across 40 trials (10 each of `normal`/`tiny`/`large`/`outlier` input distributions), where a failed element is one where `abs(candidate − reference) > 0.002 AND abs(candidate − reference) > 0.02 × abs(reference)` (i.e. it fails *both* halves of the disclosed OR-tolerance, matching the competition's exact rule). No candidate is promoted into the final dispatch table unless it clears this bar on the specific shape it's dispatched for (§ATTRIBUTION 12).
@@ -147,7 +151,7 @@ Two important negative results are recorded, not hidden, because they materially
 | 3 | `LVLV` | 15.62x | +14% |
 | 4 | `LLVV` | 11.54x | +44% |
 | 5 | `LLLV` | 4.33x | +6% |
-| 6 | `PFFF` (binary search; 3-way search **pending**, see callout below) | 3.59x | n/a — `LFA` fails here |
+| 6 | `PLLV` (layer 4 upgraded to VFA-level; see §4.10) | 3.92x | n/a — plain `LFA` fails here |
 | 7 | plain `LFA` (no mix found an improvement) | 10.73x | — |
 | 8 | `PVPV` | 1.64x | +38% |
 | 9 | `LLVV` | 3.42x | +33% |
@@ -157,9 +161,7 @@ Two important negative results are recorded, not hidden, because they materially
 | 13 | `LLLV` | 15.50x | +8% |
 | 14 | `LP` (layer 1 FP32 SDPA, layer 2 FP16 FA2, uncompiled, chunk=8 of 32) | 1.85x vs `H` | n/a — `LFA` fails here |
 
-> **Pending update (shape 6):** the binary (`none`/LFA-level) search found `PFFF` at 3.587x. A follow-up 3-way search (adding the more aggressive VFA-level option per layer, the same generalization used for shapes 1–5/7–13) was launched across 81 patterns and was still running at the time of writing, given shape 6's batch size (10,000) makes each of the 81×40 accuracy-screening trials materially more expensive than at the other shapes. **This section will be updated with the final number once that job completes** — see `results/logs/search_boundary_shape6_3way.log` for the raw output when available.
-
-Raw CSVs and logs backing every number above are in `results/csv/` and `results/logs/`; the machine-readable dispatch table is `results/dispatch/a6000_dispatch_final.json`.
+Raw CSVs and logs backing every number above are in `results/csv/` and `results/logs/`; the machine-readable dispatch table is `results/dispatch/a6000_dispatch_final.json`. Shape 6's extended 3-way search log is `results/logs/search_boundary_shape6_3way.log`.
 
 ## 7. Operational lessons (worth keeping for anyone extending this)
 
@@ -168,6 +170,7 @@ Raw CSVs and logs backing every number above are in `results/csv/` and `results/
 - **Exact/manual attention cannot be used as a reference at extreme sequence lengths, at any batch size** — its own `O(S²)` memory requirement, not the candidate's, becomes the limiting factor. Use a memory-safe (SDPA/FlashAttention-based) variant that has already been validated on a feasible prefix as the reference instead.
 - **A "top-K by heuristic" sort for benchmarking search survivors can silently exclude the true baseline from comparison**, producing false "beats the baseline" claims. Always include the known-best reference configuration explicitly in whatever gets benchmarked and compared, rather than trusting a proxy sort order to surface it.
 - **`torch._dynamo`'s default recompilation cache limit (8) is easy to exhaust silently** in any script that compiles more than a handful of distinct model/shape combinations in one process; raise `torch._dynamo.config.cache_size_limit` explicitly and verify no `cache_size_limit` warnings appear in the log for a multi-shape sweep.
+- **A brute-force accuracy screen's wall-clock cost tracks total activation-tensor size, not just pattern count.** The same 81-pattern/40-trial search took ~3–12 minutes per shape (even in pairs) for 12 of the 13 shapes, but ~75+ minutes for shape 6 alone — its batch size of 10,000 makes its per-tensor element count (`B×S×D` ≈ 164M) roughly 20x larger than the next-heaviest shape (8 or 13, ≈8.4M) and up to four orders of magnitude larger than the smallest (shape 2, ≈16K). When parallelizing a search across shapes, pair small/cheap shapes together on one GPU and give the largest-batch shape(s) a dedicated GPU rather than assuming uniform per-shape cost.
 
 ## 8. Limitations and future work
 

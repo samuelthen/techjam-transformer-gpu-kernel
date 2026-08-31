@@ -1,0 +1,37 @@
+/homes/gws/stsj/miniconda3/envs/gigatok_vlm/lib/python3.10/site-packages/torch/_inductor/compile_fx.py:167: UserWarning: TensorFloat32 tensor cores for float32 matrix multiplication available but not enabled. Consider setting `torch.set_float32_matmul_precision('high')` for better performance.
+  warnings.warn(
+
+================================================================================
+=== shape 6: TransformerConfig(batch_size=10000, seq_len=128, d_model=128, num_heads=4, ffn_dim=128, num_layers=4, causal=True) ===
+81 per-layer patterns to screen (3^4)
+  PPPP  PASS  max_abs=3.8147e-06 n_proj=0 n_core=0
+  PPPL  PASS  max_abs=0.000814486 n_proj=0 n_core=1
+  PPPV  PASS  max_abs=0.00153625 n_proj=1 n_core=0
+  PPLP  PASS  max_abs=0.000934958 n_proj=0 n_core=1
+  PPLL  PASS  max_abs=0.00111783 n_proj=0 n_core=2
+  PPLV  PASS  max_abs=0.00176001 n_proj=1 n_core=1
+  PPVP  PASS  max_abs=0.0018878 n_proj=1 n_core=0
+  PPVL  PASS  max_abs=0.00209069 n_proj=1 n_core=1
+  PLPP  PASS  max_abs=0.00118812 n_proj=0 n_core=1
+  PLPL  PASS  max_abs=0.00137842 n_proj=0 n_core=2
+  PLPV  PASS  max_abs=0.00186965 n_proj=1 n_core=1
+  PLLP  PASS  max_abs=0.00144931 n_proj=0 n_core=2
+  PLLL  PASS  max_abs=0.00176448 n_proj=0 n_core=3
+  PLLV  PASS  max_abs=0.00186729 n_proj=1 n_core=2
+  PLVP  PASS  max_abs=0.00199056 n_proj=1 n_core=1
+  PLVL  PASS  max_abs=0.00214875 n_proj=1 n_core=2
+  LPPP  PASS  max_abs=0.00184271 n_proj=0 n_core=1
+  LPPV  PASS  max_abs=0.00251418 n_proj=1 n_core=1
+  LPLP  PASS  max_abs=0.0020562 n_proj=0 n_core=2
+  LPLL  PASS  max_abs=0.00211301 n_proj=0 n_core=3
+  LLPP  PASS  max_abs=0.00208127 n_proj=0 n_core=2
+21/81 patterns PASS for shape 6
+
+=== Benchmarking top passing patterns for shape 6 (compiled) ===
+  PLLV  median=137.0634 ms  speedup=3.923x
+  PLVL  median=137.1331 ms  speedup=3.921x
+  PPLV  median=152.9375 ms  speedup=3.516x
+  PPVL  median=153.3051 ms  speedup=3.508x
+  PLPV  median=153.3204 ms  speedup=3.507x
+
+shape 6 BEST: PLLV  3.923x vs A  <-- BEATS pure LFA

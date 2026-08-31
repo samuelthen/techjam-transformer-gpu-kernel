@@ -132,7 +132,6 @@ This project was built interactively with Claude (Claude Code), used for: readin
 
 See `TECH_REPORT.md` §8 for the full list. In short:
 
-- Shape 6's 3-way (VFA-inclusive) search had not finished at the time of the last report update — check `results/logs/search_boundary_shape6_3way.log` and `TECH_REPORT.md` §6.2 for the latest status.
 - The per-layer search menu (none / LFA-level / VFA-level) is a fixed 3-way choice per layer, not a fully independent search over QKV precision × out-proj precision × attention backend per layer — a larger search could plausibly do better, especially on the two shapes (7, 11) where no improvement over plain `LFA` was found.
 - No custom CUDA/Triton kernels were written; all gains are from PyTorch-level operator/precision/layout choices and `torch.compile`. Concrete next steps (LayerNorm+QKV fusion, FFN fusion, persistent whole-model kernels, tile/warp/pipeline tuning) are identified with paper citations in `ATTRIBUTION.md` §15–18 but not implemented.
 - Shape 14's dispatch entry has not been benchmarked with `torch.compile` (each uncompiled forward pass there already takes ~60 seconds, making multi-candidate compilation impractical in the time available).
